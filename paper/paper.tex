@@ -271,9 +271,9 @@ of copy bandwidth): PyTorch eager \refTorchEager, \texttt{torch.compile} \refTor
 (\refWarpPct\%), Triton \refTriton{} (\refTritonPct\%) and CUDA C \refCupy{} (\refCupyPct\%).
 The NumPy CPU baseline runs at \numpySmall{} Matom-steps/s at $N=4000$. The array-programming
 rungs are limited by the neighbor-list rebuild, which materializes candidate arrays; the
-kernel languages share the same algorithm and differ mostly in code generation details
-(vectorized \texttt{float4} gathers in CUDA C versus scalar loads, launch overhead at small
-$N$). The best overall is \bestBackend/\bestVariant{} with \bestRate{} Matom-steps/s at
+kernel languages share the same algorithm; we attribute their remaining differences to code
+generation details such as vector versus scalar position loads and per-launch Python overhead
+at small $N$ (we did not profile these in depth). The best overall is \bestBackend/\bestVariant{} with \bestRate{} Matom-steps/s at
 $N=\bestN$ (\bestTauDay{} $\tau$/day, \bestNsDay{} ns/day for argon), \bestPctCopy\% of the
 copy and \bestPctSpec\% of the specification bandwidth under our model.
 
