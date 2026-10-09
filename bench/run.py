@@ -205,6 +205,8 @@ def main(argv=None) -> int:
     ap.add_argument("--provisional", action="store_true",
                     help="mark a --full run as provisional (dev machine, shared GPU)")
     ap.add_argument("--yamd", action="store_true", help="also run bench/yamd_compare.py")
+    ap.add_argument("--max-cells", type=int, default=None,
+                    help="dev only: cap FCC cells per side (memory-limited shared GPU)")
     args = ap.parse_args(argv)
 
     import roofline
@@ -229,6 +231,8 @@ def main(argv=None) -> int:
         plan += [(b, v, c) for b, v in ABLATION for c in ABLATION_CELLS]
         repeats, min_s = 5, 0.5
     plan = [p for p in plan if p[0] in avail and (only is None or p[0] in only)]
+    if args.max_cells:
+        plan = [p for p in plan if p[2] <= args.max_cells]
     t_start = time.perf_counter()
     for b, v, c in plan:
         try:
