@@ -83,13 +83,16 @@ def fcc_cells_for(n_atoms: int) -> int:
     return max(1, round((n_atoms / 4) ** (1.0 / 3.0)))
 
 
-def maxwell_velocities(n: int, temperature: float, mass: float = 1.0, seed: int = 0) -> np.ndarray:
-    """Gaussian velocities with zero total momentum, rescaled to exactly ``temperature``.
+def maxwell_velocities(
+    n: int, temperature: float, mass: float = 1.0, seed: int = 0, dist: str = "gaussian"
+) -> np.ndarray:
+    """Random velocities with zero total momentum, rescaled to exactly ``temperature``.
 
+    ``dist="uniform"`` mimics LAMMPS ``velocity create`` (its default distribution).
     The kinetic temperature uses ``3N - 3`` degrees of freedom (momentum removed).
     """
     rng = np.random.default_rng(seed)
-    v = rng.standard_normal((n, 3))
+    v = rng.standard_normal((n, 3)) if dist == "gaussian" else rng.uniform(-0.5, 0.5, (n, 3))
     v -= v.mean(axis=0)
     t_now = mass * np.sum(v * v) / (3 * n - 3)
     if t_now > 0:
