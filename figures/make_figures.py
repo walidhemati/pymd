@@ -388,7 +388,7 @@ def write_tex(doc, val, ym) -> dict:
                 if tag:
                     m[f"drift{tag}"] = f"{r['drift_per_tau']:.1e}"
             m["driftTime"] = fmt(ec["long"][0]["t"][-1], 0) if ec["long"] else "?"
-            sw = [r for r in ec["sweep"] if r["variant"] == "full"]
+            sw = [r for r in ec["sweep"] if r["variant"] == "full" and r["dt"] >= 0.003]
             if len(sw) >= 2:
                 k = np.polyfit(np.log([r["dt"] for r in sw]), np.log([r["rms_fluct"] for r in sw]),
                                1)[0]
@@ -474,6 +474,36 @@ def perf_table(doc) -> str:
     return "\n".join(out)
 
 
+def _replace_block(text: str, tag: str, body: str) -> str:
+    a, b = f"<!-- {tag}:BEGIN -->", f"<!-- {tag}:END -->"
+    if a not in text or b not in text:
+        return text
+    head, rest = text.split(a, 1)
+    _, tail = rest.split(b, 1)
+    return f"{head}{a}\n{body}\n{b}{tail}"
+
+
+def update_readme(doc, m) -> None:
+    """Fill the README's generated blocks (headline box and performance table) from JSON."""
+    readme = ROOT / "README.md"
+    if not readme.exists():
+        return
+    prov = " **(provisional: development run on a shared GPU)**" if doc.get("provisional") else ""
+    unescape = {k: str(v).replace("{,}", ",") for k, v in m.items()}
+    head = (f"> **{unescape['bestRate']} million atom-steps/s** on the LAMMPS `in.lj` LJ melt "
+            f"with {unescape['bestN']} atoms ({unescape['bestBackend']} / "
+            f"{unescape['bestVariant']}), **{unescape['bestPctCopy']}% of the measured copy "
+            f"bandwidth** ({unescape['copyBW']} GB/s, minimal-traffic model) on an "
+            f"{unescape['gpuName']}; {unescape['bestNsDay']} ns/day for argon.{prov}  \n"
+            f"> Source: `results/{doc['_source']}`.")
+    table = (f"Throughput at N = {ref_size(doc):,} (source `results/{doc['_source']}`"
+             f"{', provisional' if doc.get('provisional') else ''}):\n\n" + perf_table(doc))
+    text = readme.read_text()
+    text = _replace_block(text, "HEADLINE", head)
+    text = _replace_block(text, "PERF", table)
+    readme.write_text(text)
+
+
 def main() -> None:
     FIG.mkdir(exist_ok=True)
     doc = bench_doc()
@@ -491,6 +521,7 @@ def main() -> None:
     (RES / "perf_table.md").write_text(
         f"Source: results/{doc['_source']} (provisional: {doc.get('provisional')}), "
         f"N = {ref_size(doc):,}\n\n" + perf_table(doc) + "\n")
+    update_readme(doc, m)
     print(f"figures from {doc['_source']}; best {m['bestBackend']}/{m['bestVariant']} "
           f"{m['bestRate']} Matom-steps/s at N={m['bestN']}")
 

@@ -51,10 +51,12 @@ def equilibrated_liquid(cells: int, rho: float, temp: float, params: LJParams,
                         steps: int = 4000, seed: int = 0):
     """Melt an FCC lattice and equilibrate with Langevin at ``temp``; returns pos, vel, box."""
     pos, box = fcc_lattice(cells, density=rho, shuffle=True, seed=seed)
-    vel = maxwell_velocities(len(pos), 2.0 * temp, seed=seed)
+    t_melt = max(2.0 * temp, 3.0)  # well above melting even at rho = 0.9
+    vel = maxwell_velocities(len(pos), t_melt, seed=seed)
     eng = _engine(pos, vel, box, params, MDConfig(dt=0.005, check=True, rebuild_every=5))
-    eng.run(steps // 2, thermostat=Langevin(temp, gamma=2.0, seed=seed))
-    eng.run(steps // 2, thermostat=Langevin(temp, gamma=0.5, seed=seed + 1))
+    eng.run(steps // 4, thermostat=Langevin(t_melt, gamma=2.0, seed=seed))
+    eng.run(steps // 4, thermostat=Langevin(temp, gamma=2.0, seed=seed + 1))
+    eng.run(steps // 2, thermostat=Langevin(temp, gamma=0.5, seed=seed + 2))
     p, v = eng.state()
     return p, v, box
 
