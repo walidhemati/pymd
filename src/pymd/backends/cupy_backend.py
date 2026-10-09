@@ -535,3 +535,103 @@ class CupyEngine(Engine):
 
     def synchronize(self) -> None:
         cp.cuda.Device().synchronize()
+
+
+GUPTA_SRC = r"""
+typedef REAL real;
+struct __align__(4 * sizeof(REAL)) real4_t { real x, y, z, w; };
+
+// pass 1: embedding density rho_i and dF/drho = -1 / (2 sqrt(rho_i)); energy -sqrt(rho_i)
+extern "C" __global__ void gupta_density(const real4_t* __restrict__ x, int n,
+                                         const int* __restrict__ nl,
+                                         const int* __restrict__ nnb, real lx, real ly, real lz,
+                                         real rc2, real xi2, real q2r0, real r0inv,
+                                         real* __restrict__ dfe, real* __restrict__ emb) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= n) return;
+    real4_t p = x[i];
+    real rho = 0;
+    int m = nnb[i];
+    for (int k = 0; k < m; ++k) {
+        int j = nl[k * n + i];
+        real4_t q = x[j];
+        real dx = p.x - q.x, dy = p.y - q.y, dz = p.z - q.z;
+        dx -= lx * rint(dx / lx); dy -= ly * rint(dy / ly); dz -= lz * rint(dz / lz);
+        real r2 = dx * dx + dy * dy + dz * dz;
+        if (r2 < rc2) rho += xi2 * exp(-q2r0 * (sqrt(r2) * r0inv - (real)1));
+    }
+    real s = sqrt(rho);
+    emb[i] = -s;
+    dfe[i] = rho > 0 ? (real)-0.5 / s : (real)0;
+}
+
+// pass 2: forces, per-atom energy (embedding + half the pair repulsion) and virial
+extern "C" __global__ void gupta_force(const real4_t* __restrict__ x, int n,
+                                       const int* __restrict__ nl, const int* __restrict__ nnb,
+                                       real lx, real ly, real lz, real rc2, real A2, real p_r0,
+                                       real xi2, real q2r0, real r0inv,
+                                       const real* __restrict__ dfe,
+                                       const real* __restrict__ emb, real4_t* __restrict__ f,
+                                       real* __restrict__ eat, real* __restrict__ wat) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= n) return;
+    real4_t p = x[i];
+    real fx = 0, fy = 0, fz = 0, e = 0, w = 0;
+    real dfi = dfe[i];
+    int m = nnb[i];
+    for (int k = 0; k < m; ++k) {
+        int j = nl[k * n + i];
+        real4_t q = x[j];
+        real dx = p.x - q.x, dy = p.y - q.y, dz = p.z - q.z;
+        dx -= lx * rint(dx / lx); dy -= ly * rint(dy / ly); dz -= lz * rint(dz / lz);
+        real r2 = dx * dx + dy * dy + dz * dz;
+        if (r2 < rc2) {
+            real r = sqrt(r2);
+            real rep = A2 * exp(-p_r0 * (r - (real)1 / r0inv));
+            real dens = xi2 * exp(-q2r0 * (r * r0inv - (real)1));
+            real dedr = -rep * p_r0 - q2r0 * r0inv * dens * (dfi + dfe[j]);
+            real fr = -dedr / r;
+            fx += fr * dx; fy += fr * dy; fz += fr * dz;
+            e += (real)0.5 * rep;
+            w += fr * r2;
+        }
+    }
+    real4_t out; out.x = fx; out.y = fy; out.z = fz; out.w = 0;
+    f[i] = out;
+    eat[i] = emb[i] + e;
+    wat[i] = (real)0.5 * w;
+}
+"""
+
+
+class GuptaCupyEngine(CupyEngine):
+    """Gupta/second-moment EAM on the GPU: two passes (density, then force) over a full list."""
+
+    backend = "cupy-cuda-c-gupta"
+    variants = {"full": "fp32 two-pass EAM (density, force) over a full Verlet list"}
+
+    def _setup(self, pos: np.ndarray, vel: np.ndarray) -> None:
+        super()._setup(pos, vel)
+        gp = self.opts["gupta"]
+        self.gp = gp
+        mod = cp.RawModule(code=GUPTA_SRC, options=("-DREAL=float", "-std=c++14"))
+        self.k["gupta_density"] = mod.get_function("gupta_density")
+        self.k["gupta_force"] = mod.get_function("gupta_force")
+        self.dfe = cp.zeros(self.n, cp.float32)
+        self.emb = cp.zeros(self.n, cp.float32)
+        f32 = np.float32
+        self._g = dict(rc2=f32(gp.cutoff**2), A2=f32(2 * gp.A), p_r0=f32(gp.p / gp.r0),
+                       xi2=f32(gp.xi**2), q2r0=f32(2 * gp.q), r0inv=f32(1 / gp.r0))
+        self.supports_fused = False
+
+    def _compute_forces(self, energy: bool = False):
+        g, b, n = self.grid, (BLOCK,), np.int32(self.n)
+        k = self._g
+        self.k["gupta_density"](g, b, (self.x, n, self.nl, self.nnb, *self._box_args, k["rc2"],
+                                       k["xi2"], k["q2r0"], k["r0inv"], self.dfe, self.emb))
+        self.k["gupta_force"](g, b, (self.x, n, self.nl, self.nnb, *self._box_args, k["rc2"],
+                                     k["A2"], k["p_r0"], k["xi2"], k["q2r0"], k["r0inv"],
+                                     self.dfe, self.emb, self.f, self.e_at, self.w_at))
+        if energy:
+            return float(self.e_at.sum(dtype=cp.float64)), float(self.w_at.sum(dtype=cp.float64))
+        return None

@@ -57,3 +57,4 @@ ignore = ["E741", "B905"]
 testpaths = ["tests"]
 markers = ["gpu: requires a CUDA GPU", "slow: long-running validation"]
 addopts = "-q"
+filterwarnings = ["ignore::UserWarning:cupy", "ignore:.*Grid size.*"]

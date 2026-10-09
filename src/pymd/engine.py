@@ -60,7 +60,9 @@ class Engine(ABC):
         params: LJParams | None = None,
         cfg: MDConfig | None = None,
         variant: str | None = None,
+        **opts,
     ) -> None:
+        self.opts = opts
         self.params = params or LJParams()
         self.cfg = cfg or MDConfig()
         self.variant = variant or next(iter(self.variants))
@@ -269,6 +271,7 @@ class Engine(ABC):
         epot, vir = ev
         ekin = self._ekin()
         temp = 2.0 * ekin / self.dof
+        # LAMMPS convention: P = (dof k T / 3 + W / 3) / V = (2 E_kin / 3 + W / 3) / V
         pressure = (2.0 * ekin / 3.0 + vir / 3.0) / self.volume
         return {
             "epot": epot / self.n,
