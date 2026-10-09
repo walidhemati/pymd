@@ -80,6 +80,7 @@ def fig_perf_vs_size(doc) -> None:
     fig, ax = plt.subplots(figsize=(FULL_W, 3.3))
     for (b, v), rs in sorted(s.items(), key=lambda kv: LADDER.index(kv[0][0])):
         if len(rs) < 2 or v in ("full-morton", "full-nosort", "full-mixed", "full-fp64",
+                                "full-tpa2", "full-tpa4",
                                 "hashgrid-verlet") or (b == "triton" and v == "half-atomic"):
             continue
         n = [r["size"][0] for r in rs]
@@ -173,7 +174,8 @@ def fig_ablation(doc) -> None:
                     ("full-morton", "full-nosort", "full-mixed", "full-fp64")})
     if not sizes:
         return
-    labels = [("cupy-cuda-c", "full"), ("cupy-cuda-c", "full-morton"),
+    labels = [("cupy-cuda-c", "full"), ("cupy-cuda-c", "full-tpa2"), ("cupy-cuda-c", "full-tpa4"),
+              ("cupy-cuda-c", "full-morton"),
               ("cupy-cuda-c", "full-nosort"), ("cupy-cuda-c", "full-fused"),
               ("cupy-cuda-c", "half-atomic"), ("triton", "half-atomic"),
               ("cupy-cuda-c", "full-mixed"), ("cupy-cuda-c", "full-fp64"),
@@ -352,6 +354,7 @@ def write_tex(doc, val, ym) -> dict:
         m["numpySmall"] = fmt(small[0]["median"] / 1e6, 2)
     sp = {(r["backend"], r["variant"]): r for r in at_size(doc, n_ref)}
     for v, tag in (("full-nosort", "NoSort"), ("full-morton", "Morton"), ("half-atomic", "Half"),
+                   ("full-tpa2", "TpaTwo"), ("full-tpa4", "TpaFour"),
                    ("full-fused", "Fused"), ("full-mixed", "Mixed"), ("full-fp64", "Fp64")):
         r = sp.get(("cupy-cuda-c", v))
         if r and cu:

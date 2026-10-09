@@ -150,34 +150,89 @@ __global__ void force_full(const real4_t* __restrict__ x, int n, const int* __re
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= n) return;
     real4_t p = x[i];
-    real ilx = (real)1 / lx, ily = (real)1 / ly, ilz = (real)1 / lz;
-    real fx = 0, fy = 0, fz = 0, e = 0, w = 0;
+    preal plx = (preal)lx, ply = (preal)ly, plz = (preal)lz;
+    preal pilx = (preal)1 / plx, pily = (preal)1 / ply, pilz = (preal)1 / plz;
+    preal fx = 0, fy = 0, fz = 0, e = 0, w = 0;
     int m = nnb[i];
     for (int k = 0; k < m; ++k) {
         int j = __ldg(&nl[k * n + i]);
         real4_t q = x[j];
-        real ddx = p.x - q.x, ddy = p.y - q.y, ddz = p.z - q.z;
-        ddx -= lx * rint(ddx * ilx);
-        ddy -= ly * rint(ddy * ily);
-        ddz -= lz * rint(ddz * ilz);
-        preal dx = (preal)ddx, dy = (preal)ddy, dz = (preal)ddz;
+        preal dx = (preal)(p.x - q.x), dy = (preal)(p.y - q.y), dz = (preal)(p.z - q.z);
+        dx -= plx * rint(dx * pilx);
+        dy -= ply * rint(dy * pily);
+        dz -= plz * rint(dz * pilz);
         preal r2 = dx * dx + dy * dy + dz * dz;
         if (r2 < rc2) {
             preal r2i = (preal)1 / r2;
             preal r6i = r2i * r2i * r2i;
             preal ff = r6i * (lj1 * r6i - lj2) * r2i;
-            fx += (real)(ff * dx);
-            fy += (real)(ff * dy);
-            fz += (real)(ff * dz);
+            fx += ff * dx;
+            fy += ff * dy;
+            fz += ff * dz;
             if (ENERGY) {
-                e += (real)(r6i * (lj3 * r6i - lj4) - eshift);
-                w += (real)(ff * r2);
+                e += r6i * (lj3 * r6i - lj4) - eshift;
+                w += ff * r2;
             }
         }
     }
     real4_t out; out.x = fx; out.y = fy; out.z = fz; out.w = 0;
     f[i] = out;
     if (ENERGY) { epair[i] = (real)0.5 * e; wpair[i] = (real)0.5 * w; }
+}
+
+// Several threads per atom (TPA lanes share one atom's list, shuffle reduction): more
+// independent gathers in flight per atom, i.e. more memory-level parallelism.
+template <bool ENERGY, int TPA>
+__global__ void force_tpa(const real4_t* __restrict__ x, int n, const int* __restrict__ nl,
+                          const int* __restrict__ nnb, real lx, real ly, real lz, LJ_ARGS,
+                          real4_t* __restrict__ f, real* __restrict__ epair,
+                          real* __restrict__ wpair) {
+    int g = blockIdx.x * blockDim.x + threadIdx.x;
+    int i = g / TPA, lane = g % TPA;
+    bool active = i < n;
+    preal fx = 0, fy = 0, fz = 0, e = 0, w = 0;
+    if (active) {
+        real4_t p = x[i];
+        preal plx = (preal)lx, ply = (preal)ly, plz = (preal)lz;
+        preal pilx = (preal)1 / plx, pily = (preal)1 / ply, pilz = (preal)1 / plz;
+        int m = nnb[i];
+        for (int k = lane; k < m; k += TPA) {
+            int j = __ldg(&nl[k * n + i]);
+            real4_t q = x[j];
+            preal dx = (preal)(p.x - q.x), dy = (preal)(p.y - q.y), dz = (preal)(p.z - q.z);
+            dx -= plx * rint(dx * pilx);
+            dy -= ply * rint(dy * pily);
+            dz -= plz * rint(dz * pilz);
+            preal r2 = dx * dx + dy * dy + dz * dz;
+            if (r2 < rc2) {
+                preal r2i = (preal)1 / r2;
+                preal r6i = r2i * r2i * r2i;
+                preal ff = r6i * (lj1 * r6i - lj2) * r2i;
+                fx += ff * dx;
+                fy += ff * dy;
+                fz += ff * dz;
+                if (ENERGY) {
+                    e += r6i * (lj3 * r6i - lj4) - eshift;
+                    w += ff * r2;
+                }
+            }
+        }
+    }
+    #pragma unroll
+    for (int off = TPA / 2; off > 0; off /= 2) {
+        fx += __shfl_down_sync(0xffffffffu, fx, off, TPA);
+        fy += __shfl_down_sync(0xffffffffu, fy, off, TPA);
+        fz += __shfl_down_sync(0xffffffffu, fz, off, TPA);
+        if (ENERGY) {
+            e += __shfl_down_sync(0xffffffffu, e, off, TPA);
+            w += __shfl_down_sync(0xffffffffu, w, off, TPA);
+        }
+    }
+    if (active && lane == 0) {
+        real4_t out; out.x = fx; out.y = fy; out.z = fz; out.w = 0;
+        f[i] = out;
+        if (ENERGY) { epair[i] = (real)0.5 * e; wpair[i] = (real)0.5 * w; }
+    }
 }
 
 // Half neighbor list: each pair once, Newton's third law via atomicAdd on f[j].
@@ -189,17 +244,17 @@ __global__ void force_half(const real4_t* __restrict__ x, int n, const int* __re
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= n) return;
     real4_t p = x[i];
-    real ilx = (real)1 / lx, ily = (real)1 / ly, ilz = (real)1 / lz;
-    real fx = 0, fy = 0, fz = 0, e = 0, w = 0;
+    preal plx = (preal)lx, ply = (preal)ly, plz = (preal)lz;
+    preal pilx = (preal)1 / plx, pily = (preal)1 / ply, pilz = (preal)1 / plz;
+    preal fx = 0, fy = 0, fz = 0, e = 0, w = 0;
     int m = nnb[i];
     for (int k = 0; k < m; ++k) {
         int j = __ldg(&nl[k * n + i]);
         real4_t q = x[j];
-        real ddx = p.x - q.x, ddy = p.y - q.y, ddz = p.z - q.z;
-        ddx -= lx * rint(ddx * ilx);
-        ddy -= ly * rint(ddy * ily);
-        ddz -= lz * rint(ddz * ilz);
-        preal dx = (preal)ddx, dy = (preal)ddy, dz = (preal)ddz;
+        preal dx = (preal)(p.x - q.x), dy = (preal)(p.y - q.y), dz = (preal)(p.z - q.z);
+        dx -= plx * rint(dx * pilx);
+        dy -= ply * rint(dy * pily);
+        dz -= plz * rint(dz * pilz);
         preal r2 = dx * dx + dy * dy + dz * dz;
         if (r2 < rc2) {
             preal r2i = (preal)1 / r2;
@@ -211,8 +266,8 @@ __global__ void force_half(const real4_t* __restrict__ x, int n, const int* __re
             atomicAdd(&f[j].y, -gy);
             atomicAdd(&f[j].z, -gz);
             if (ENERGY) {
-                e += (real)(r6i * (lj3 * r6i - lj4) - eshift);
-                w += (real)(ff * r2);
+                e += r6i * (lj3 * r6i - lj4) - eshift;
+                w += ff * r2;
             }
         }
     }
@@ -230,25 +285,25 @@ extern "C" __global__ void fused_step(const real4_t* __restrict__ x, int n,
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= n) return;
     real4_t p = x[i];
-    real ilx = (real)1 / lx, ily = (real)1 / ly, ilz = (real)1 / lz;
-    real fx = 0, fy = 0, fz = 0;
+    preal plx = (preal)lx, ply = (preal)ly, plz = (preal)lz;
+    preal pilx = (preal)1 / plx, pily = (preal)1 / ply, pilz = (preal)1 / plz;
+    preal fx = 0, fy = 0, fz = 0;
     int m = nnb[i];
     for (int k = 0; k < m; ++k) {
         int j = __ldg(&nl[k * n + i]);
         real4_t q = x[j];
-        real ddx = p.x - q.x, ddy = p.y - q.y, ddz = p.z - q.z;
-        ddx -= lx * rint(ddx * ilx);
-        ddy -= ly * rint(ddy * ily);
-        ddz -= lz * rint(ddz * ilz);
-        preal dx = (preal)ddx, dy = (preal)ddy, dz = (preal)ddz;
+        preal dx = (preal)(p.x - q.x), dy = (preal)(p.y - q.y), dz = (preal)(p.z - q.z);
+        dx -= plx * rint(dx * pilx);
+        dy -= ply * rint(dy * pily);
+        dz -= plz * rint(dz * pilz);
         preal r2 = dx * dx + dy * dy + dz * dz;
         if (r2 < rc2) {
             preal r2i = (preal)1 / r2;
             preal r6i = r2i * r2i * r2i;
             preal ff = r6i * (lj1 * r6i - lj2) * r2i;
-            fx += (real)(ff * dx);
-            fy += (real)(ff * dy);
-            fz += (real)(ff * dz);
+            fx += ff * dx;
+            fy += ff * dy;
+            fz += ff * dz;
         }
     }
     real4_t vi = v[i];
@@ -266,8 +321,9 @@ __global__ void force_allpairs(const real4_t* __restrict__ x, int n, real lx, re
     __shared__ real4_t tile[BLOCK];
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     real4_t p = i < n ? x[i] : x[0];
-    real ilx = (real)1 / lx, ily = (real)1 / ly, ilz = (real)1 / lz;
-    real fx = 0, fy = 0, fz = 0, e = 0, w = 0;
+    preal plx = (preal)lx, ply = (preal)ly, plz = (preal)lz;
+    preal pilx = (preal)1 / plx, pily = (preal)1 / ply, pilz = (preal)1 / plz;
+    preal fx = 0, fy = 0, fz = 0, e = 0, w = 0;
     for (int t = 0; t < n; t += BLOCK) {
         int jl = t + threadIdx.x;
         if (jl < n) tile[threadIdx.x] = x[jl];
@@ -275,22 +331,21 @@ __global__ void force_allpairs(const real4_t* __restrict__ x, int n, real lx, re
         int m = min(BLOCK, n - t);
         for (int k = 0; k < m; ++k) {
             real4_t q = tile[k];
-            real ddx = p.x - q.x, ddy = p.y - q.y, ddz = p.z - q.z;
-            ddx -= lx * rint(ddx * ilx);
-            ddy -= ly * rint(ddy * ily);
-            ddz -= lz * rint(ddz * ilz);
-            preal dx = (preal)ddx, dy = (preal)ddy, dz = (preal)ddz;
+            preal dx = (preal)(p.x - q.x), dy = (preal)(p.y - q.y), dz = (preal)(p.z - q.z);
+            dx -= plx * rint(dx * pilx);
+            dy -= ply * rint(dy * pily);
+            dz -= plz * rint(dz * pilz);
             preal r2 = dx * dx + dy * dy + dz * dz;
             if (r2 < rc2 && t + k != i) {
                 preal r2i = (preal)1 / r2;
                 preal r6i = r2i * r2i * r2i;
                 preal ff = r6i * (lj1 * r6i - lj2) * r2i;
-                fx += (real)(ff * dx);
-                fy += (real)(ff * dy);
-                fz += (real)(ff * dz);
+                fx += ff * dx;
+                fy += ff * dy;
+                fz += ff * dz;
                 if (ENERGY) {
-                    e += (real)(r6i * (lj3 * r6i - lj4) - eshift);
-                    w += (real)(ff * r2);
+                    e += r6i * (lj3 * r6i - lj4) - eshift;
+                    w += ff * r2;
                 }
             }
         }
@@ -324,6 +379,12 @@ _TEMPLATED = [
     "force_half<false>",
     "force_allpairs<true>",
     "force_allpairs<false>",
+    "force_tpa<true, 2>",
+    "force_tpa<false, 2>",
+    "force_tpa<true, 4>",
+    "force_tpa<false, 4>",
+    "force_tpa<true, 8>",
+    "force_tpa<false, 8>",
 ]
 _PLAIN = ["wrap_key", "histogram", "scatter", "permute", "build_nlist", "fused_step", "kick_drift"]
 
@@ -378,10 +439,12 @@ class CupyEngine(Engine):
     variants = {
         "full": "fp32, full Verlet list (no atomics), cell-sorted atoms",
         "full-fused": "fp32 full list, one fused force+kick+drift kernel per step (leapfrog)",
+        "full-tpa2": "fp32 full list, 2 threads per atom with warp-shuffle reduction",
+        "full-tpa4": "fp32 full list, 4 threads per atom with warp-shuffle reduction",
         "half-atomic": "fp32 half Verlet list, Newton's 3rd law with atomicAdd scatter",
         "full-morton": "fp32 full list, atoms sorted along a Morton (Z-order) curve of cells",
         "full-nosort": "fp32 full list, atoms never reordered (cell list by indirection)",
-        "full-mixed": "fp32 pair math, fp64 positions/velocities/force accumulation",
+        "full-mixed": "fp64 positions/velocities/integration, fp32 pair math and force sums",
         "full-fp64": "fp64 everywhere (consumer GPU fp64 rate is 1/64 of fp32)",
         "allpairs": "fp32 O(N^2) shared-memory tiled direct summation with cutoff",
     }
@@ -395,6 +458,7 @@ class CupyEngine(Engine):
         self.uses_list = v != "allpairs"
         self.half = v == "half-atomic"
         self.supports_fused = v == "full-fused"
+        self.tpa = int(self.opts.get("tpa", int(v[-1]) if v.startswith("full-tpa") else 1))
         self.sort = {"full-morton": "morton", "full-nosort": "none"}.get(v, self.cfg.sort)
         mod = _module(self.prec)
         self.k = {name: mod.get_function(name) for name in _PLAIN}
@@ -482,6 +546,11 @@ class CupyEngine(Engine):
             self.k[f"force_half<{tag}>"](g, b, (self.x, np.int32(n), self.nl, self.nnb,
                                                  *self._box_args, *self.lj, self.f, self.e_at,
                                                  self.w_at))
+        elif self.tpa > 1:
+            gt = ((n * self.tpa + BLOCK - 1) // BLOCK,)
+            self.k[f"force_tpa<{tag}, {self.tpa}>"](gt, b, (self.x, np.int32(n), self.nl,
+                                                          self.nnb, *self._box_args, *self.lj,
+                                                          self.f, self.e_at, self.w_at))
         else:
             self.k[f"force_full<{tag}>"](g, b, (self.x, np.int32(n), self.nl, self.nnb,
                                                  *self._box_args, *self.lj, self.f, self.e_at,

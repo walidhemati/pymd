@@ -70,7 +70,7 @@ with the same algorithms, on the same GPU.
 Gupta potential for gold clusters). \pymd{} mirrors \yamd's features and test cases and adds
 periodic boundaries, GPU neighbor search and a Langevin thermostat. Contributions:
 \begin{itemize}
-\item An MD engine with one integrator and a registry of 21 backend/variant combinations
+\item An MD engine with one integrator and a registry of 23 backend/variant combinations
   spanning seven programming models, all validated against one float64 oracle
   (\cref{sec:impl,sec:validation}).
 \item A minimal memory-traffic and flop model per atom-step for Verlet-list MD, used to report
@@ -155,7 +155,8 @@ driver in \texttt{engine.py} implements Verlet, the rebuild schedule and the the
 \item[Numba-CUDA] the same kernel set in \texttt{@cuda.jit}, including a single-block scan.
 \item[CuPy CUDA C] the hand-written reference, compiled by NVRTC, with \texttt{float4}
   positions and templated precision. Variants: \texttt{full}, \texttt{full-fused},
-  \texttt{half-atomic} (Newton's third law with \texttt{atomicAdd}), \texttt{full-morton},
+  \texttt{half-atomic} (Newton's third law with \texttt{atomicAdd}), \texttt{full-tpa2/4}
+  (two or four threads per atom, warp-shuffle reduction), \texttt{full-morton},
   \texttt{full-nosort}, \texttt{full-mixed} (fp32 pair math, fp64 storage and accumulation),
   \texttt{full-fp64}, and a shared-memory tiled $O(N^2)$ \texttt{allpairs}.
 \end{description}
@@ -279,7 +280,8 @@ copy and \bestPctSpec\% of the specification bandwidth under our model.
 \paragraph{Ablations} (\cref{fig:ablation}, CUDA C, $N=\refN$, relative to \texttt{full}):
 no spatial sorting \ablNoSortRatio$\times$, Morton order \ablMortonRatio$\times$ (row-major cell
 order is already local at this cell size), half list with atomics \ablHalfRatio$\times$ (fewer
-list bytes but three float atomics per pair), fused kernel \ablFusedRatio$\times$, mixed
+list bytes but three float atomics per pair), fused kernel \ablFusedRatio$\times$, two and four threads per atom
+\ablTpaTwoRatio$\times$ and \ablTpaFourRatio$\times$, mixed
 precision \ablMixedRatio$\times$ and fp64 \ablFpSixtyFourRatio$\times$ (the consumer GPU
 executes fp64 at a small fraction of the fp32 rate).
 
@@ -329,8 +331,8 @@ rebuild schedule of \pymd.}
 \paragraph{Where the time goes.} With sorted atoms the force kernel streams the neighbor index
 list and hits cache for neighbor positions; the list bytes dominate the minimal model. The
 remaining gap to the bandwidth ceiling is latency of dependent gathers (index, then position)
-with one thread per atom; assigning several threads to each atom to raise memory-level
-parallelism is a natural next rung. Half lists halve the
+with one thread per atom; assigning two or four threads to each atom (the \texttt{full-tpa}
+variants) raises memory-level parallelism but adds a shuffle reduction and partially idle lanes. Half lists halve the
 index traffic but the atomic scatter costs more than it saves on this GPU.
 
 \paragraph{Threats to validity.} (i) A single laptop GPU; laptop GPUs throttle under sustained

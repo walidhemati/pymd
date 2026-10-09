@@ -32,7 +32,7 @@ neighbor lists, Gupta potential for gold clusters) and moves the hot loops to th
 | `triton` | `full`, `full-fused`, `half-atomic` | hand-written Triton kernels (list build, forces, integrator) |
 | `warp` | `full`, `hashgrid`, `hashgrid-verlet` | hand-written cell list vs Warp's built-in `HashGrid` |
 | `numba` | `full`, `full-fused` | `@cuda.jit` kernels incl. counting sort and scan |
-| `cupy-cuda-c` | `full`, `full-fused`, `half-atomic`, `full-morton`, `full-nosort`, `full-mixed`, `full-fp64`, `allpairs` | hand-written CUDA C reference (NVRTC), ablations |
+| `cupy-cuda-c` | `full`, `full-fused`, `full-tpa2`, `full-tpa4`, `half-atomic`, `full-morton`, `full-nosort`, `full-mixed`, `full-fp64`, `allpairs` | hand-written CUDA C reference (NVRTC), ablations |
 
 Physics and numerics: truncated (optionally shifted) LJ with periodic boundaries and minimum
 image; velocity Verlet (fused kick-drift) and a one-kernel-per-step leapfrog; Berendsen and
@@ -63,8 +63,8 @@ print(eng.thermo())           # epot, ekin, etot per atom, temperature, pressure
 
 ![validation](figures/validation.png)
 
-* **Forces** of all 21 backend/variant combinations against a float64 NumPy direct sum
-  (single precision: about 3e-6 relative to the largest force; fp64 variant: machine precision).
+* **Forces** of all 23 backend/variant combinations against a float64 NumPy direct sum
+  (single precision: below 1e-5 relative to the largest force; fp64 variant: machine precision).
 * **LAMMPS `bench/in.lj`**: step-0 potential energy and pressure reproduce the LAMMPS reference
   log (-6.7733681, -5.0197073); after 100 steps temperature, energies and pressure agree with the
   log within seed-to-seed scatter; same half-list length and number of rebuilds.

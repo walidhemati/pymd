@@ -63,6 +63,8 @@ MAIN = [
 #: ablations run at two sizes only
 ABLATION = [
     ("cupy-cuda-c", "full-morton"),
+    ("cupy-cuda-c", "full-tpa2"),
+    ("cupy-cuda-c", "full-tpa4"),
     ("cupy-cuda-c", "full-nosort"),
     ("cupy-cuda-c", "full-mixed"),
     ("cupy-cuda-c", "full-fp64"),
