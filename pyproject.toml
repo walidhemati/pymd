@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pymd"
+version = "0.1.0"
+description = "Lennard-Jones and EAM molecular dynamics at GPU speed from pure Python (Triton, Warp, Numba-CUDA, CuPy, PyTorch)"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Walid Hemati" }]
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
+
+[project.optional-dependencies]
+torch = ["torch>=2.3"]
+triton = ["torch>=2.3", "triton>=3.0"]
+warp = ["warp-lang>=1.5"]
+numba = ["numba>=0.60", "numba-cuda>=0.20"]
+cupy = ["cupy-cuda12x>=13"]
+gpu = [
+    "torch>=2.3",
+    "triton>=3.0",
+    "warp-lang>=1.5",
+    "numba>=0.60",
+    "numba-cuda>=0.20",
+    "cupy-cuda12x>=13",
+]
+figures = ["matplotlib>=3.7", "imageio>=2.30", "scipy>=1.10"]
+dev = ["pytest>=7", "ruff>=0.5", "matplotlib>=3.7", "scipy>=1.10"]
+
+[project.scripts]
+pymd = "pymd.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/walidhemati/pymd"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pymd"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests", "bench", "figures"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "NPY"]
+ignore = ["E741", "B905"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["gpu: requires a CUDA GPU", "slow: long-running validation"]
+addopts = "-q"

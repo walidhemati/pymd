@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use pymd, please cite it as below."
+title: "pymd: Lennard-Jones molecular dynamics at GPU speed from pure Python"
+authors:
+  - family-names: Hemati
+    given-names: Walid
+    affiliation: Independent researcher
+version: 0.1.0
+date-released: 2026-10-09
+license: MIT
+repository-code: "https://github.com/walidhemati/pymd"
+keywords:
+  - molecular dynamics
+  - Lennard-Jones
+  - GPU
+  - Triton
+  - NVIDIA Warp
+  - roofline

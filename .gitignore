@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.so
+# yamd comparison build products
+bench/yamd/build/
+# LaTeX intermediates (paper.pdf is committed)
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.toc
+# scratch
+*.xyz
+/scratch/
