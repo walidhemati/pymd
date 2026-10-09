@@ -44,9 +44,9 @@ backends share GPU cell lists built by counting sort, Verlet neighbor lists with
 spatial atom sorting. On the LAMMPS \texttt{in.lj} melt benchmark, scaled up to four million
 atoms on a laptop RTX~3070, the fastest variant (\bestBackend/\bestVariant) reaches
 \bestRate{}~million atom-steps per second at $N=\bestN$, i.e.\ \bestPctCopy\% of the measured
-copy bandwidth under a minimal-traffic model. The Python kernel languages land within a
-modest factor of the CUDA C reference (Triton \ratioTriton\%, Warp \ratioWarp\%, Numba
-\ratioNumba\% of its throughput at $N=\refN$). Correctness is established against a float64
+copy bandwidth under a minimal-traffic model. The Python kernel languages run the same
+algorithm at \ratioTriton\% (Triton), \ratioWarp\% (Warp) and \ratioNumba\% (Numba) of the
+throughput of the CUDA C reference at $N=\refN$. Correctness is established against a float64
 NumPy oracle (relative force error $\le\forceErrMax$ in single precision), the
 LAMMPS reference log of \texttt{in.lj}, NIST reference simulation data, the
 Johnson--Zollweg--Gubbins equation of state, and the author's earlier C++ code \yamd{},
