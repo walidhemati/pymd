@@ -77,7 +77,7 @@ def ceiling_rate(doc, n_list: float) -> float:
 # ----------------------------------------------------------------------------- performance
 def fig_perf_vs_size(doc) -> None:
     s = series(doc)
-    fig, ax = plt.subplots(figsize=(FULL_W, 3.3))
+    fig, ax = plt.subplots(figsize=(FULL_W * 0.74, 3.3))
     for (b, v), rs in sorted(s.items(), key=lambda kv: LADDER.index(kv[0][0])):
         if len(rs) < 2 or v in ("full-morton", "full-nosort", "full-mixed", "full-fp64",
                                 "full-tpa2", "full-tpa4",
@@ -101,7 +101,7 @@ def fig_perf_vs_size(doc) -> None:
     ax.set_yscale("log")
     ax.set_xlabel("atoms N")
     ax.set_ylabel("Matom-steps / s")
-    ax.legend(fontsize=6.5, ncol=3, frameon=False, loc="lower right")
+    ax.legend(fontsize=6.5, ncol=1, frameon=False, loc="upper left", bbox_to_anchor=(1.01, 1.0))
     ax.set_title("LJ melt (LAMMPS in.lj), RTX 3070 Laptop", fontsize=9)
     save(fig, "perf_vs_size")
 
@@ -352,10 +352,14 @@ def write_tex(doc, val, ym) -> dict:
     small = [r for r in runs_ok(doc) if r["size"][0] == 4000 and r["backend"] == "numpy"]
     if small:
         m["numpySmall"] = fmt(small[0]["median"] / 1e6, 2)
-    sp = {(r["backend"], r["variant"]): r for r in at_size(doc, n_ref)}
+    abl_sizes = [r["size"][0] for r in runs_ok(doc) if r["variant"] == "full-nosort"]
+    n_abl = max(abl_sizes) if abl_sizes else n_ref
+    m["ablN"] = fmt(n_abl, 0)
+    sp = {(r["backend"], r["variant"]): r for r in at_size(doc, n_abl)}
+    cu = sp.get(("cupy-cuda-c", "full"))
     for v, tag in (("full-nosort", "NoSort"), ("full-morton", "Morton"), ("half-atomic", "Half"),
                    ("full-tpa2", "TpaTwo"), ("full-tpa4", "TpaFour"),
-                   ("full-fused", "Fused"), ("full-mixed", "Mixed"), ("full-fp64", "Fp64")):
+                   ("full-fused", "Fused"), ("full-mixed", "Mixed"), ("full-fp64", "FpSixtyFour")):
         r = sp.get(("cupy-cuda-c", v))
         if r and cu:
             m[f"abl{tag}"] = fmt(r["median"] / 1e6, 0)
@@ -501,6 +505,12 @@ def update_readme(doc, m) -> None:
             f"> Source: `results/{doc['_source']}`.")
     table = (f"Throughput at N = {ref_size(doc):,} (source `results/{doc['_source']}`"
              f"{', provisional' if doc.get('provisional') else ''}):\n\n" + perf_table(doc))
+    if doc.get("provisional"):
+        # SPEC: development timings never go into the README; wait for the final serial run.
+        head = ("> Pending the final benchmark (`python bench/run.py --full` on an idle GPU). "
+                "The figures below currently show provisional development data "
+                f"(`results/{doc['_source']}`).")
+        table = "Table pending the final benchmark run (`results/rtx3070-laptop.json`)."
     text = readme.read_text()
     text = _replace_block(text, "HEADLINE", head)
     text = _replace_block(text, "PERF", table)

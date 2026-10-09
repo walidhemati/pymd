@@ -157,7 +157,7 @@ driver in \texttt{engine.py} implements Verlet, the rebuild schedule and the the
   positions and templated precision. Variants: \texttt{full}, \texttt{full-fused},
   \texttt{half-atomic} (Newton's third law with \texttt{atomicAdd}), \texttt{full-tpa2/4}
   (two or four threads per atom, warp-shuffle reduction), \texttt{full-morton},
-  \texttt{full-nosort}, \texttt{full-mixed} (fp32 pair math, fp64 storage and accumulation),
+  \texttt{full-nosort}, \texttt{full-mixed} (fp64 positions, velocities and integration; fp32 pair math and per-atom sums),
   \texttt{full-fp64}, and a shared-memory tiled $O(N^2)$ \texttt{allpairs}.
 \end{description}
 
@@ -229,7 +229,7 @@ check of the transcription.
 atoms the GPU fp32 Gupta forces match float64 to \eamForceErr, and NVE with $\Delta t=1$\,fs
 conserves energy to \eamDrift\,eV/atom over 2\,ps.
 
-\begin{figure}[t]
+\begin{figure}[htbp]
 \centering\includegraphics[width=\linewidth]{../figures/validation.pdf}
 \caption{Validation. (a) Force error of every backend/variant versus the float64 oracle.
 (b) Energy fluctuation versus time step. (c) Energy drift in a long NVE run for three
@@ -237,7 +237,7 @@ precisions. (d) Pressure versus NIST SRSW Monte Carlo data and the JZG equation 
 \label{fig:validation}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[htbp]
 \centering\includegraphics[width=0.6\linewidth]{../figures/rdf.pdf}
 \caption{Radial distribution function of the LJ liquid at $\rho^*=0.8442$, $T^*=0.722$.}
 \label{fig:rdf}
@@ -249,14 +249,14 @@ compilation excluded), with the GPU synchronized around the timed region.
 \Cref{fig:perf} shows throughput versus system size; \cref{fig:roofline} the roofline and the
 fraction of copy bandwidth at $N=\refN$.
 
-\begin{figure}[t]
+\begin{figure}[htbp]
 \centering\includegraphics[width=\linewidth]{../figures/perf_vs_size.pdf}
 \caption{Throughput on the \texttt{in.lj} melt versus atoms (bands: min--max of 5 repeats).
 Dotted: the copy-bandwidth roofline of the minimal traffic model for a full list.}
 \label{fig:perf}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=0.49\linewidth]{../figures/roofline.pdf}\hfill
 \includegraphics[width=0.49\linewidth]{../figures/roofline_bars.pdf}
@@ -277,7 +277,7 @@ $N$). The best overall is \bestBackend/\bestVariant{} with \bestRate{} Matom-ste
 $N=\bestN$ (\bestTauDay{} $\tau$/day, \bestNsDay{} ns/day for argon), \bestPctCopy\% of the
 copy and \bestPctSpec\% of the specification bandwidth under our model.
 
-\paragraph{Ablations} (\cref{fig:ablation}, CUDA C, $N=\refN$, relative to \texttt{full}):
+\paragraph{Ablations} (\cref{fig:ablation}, CUDA C, $N=\ablN$, relative to \texttt{full}):
 no spatial sorting \ablNoSortRatio$\times$, Morton order \ablMortonRatio$\times$ (row-major cell
 order is already local at this cell size), half list with atomics \ablHalfRatio$\times$ (fewer
 list bytes but three float atomics per pair), fused kernel \ablFusedRatio$\times$, two and four threads per atom
@@ -285,7 +285,7 @@ list bytes but three float atomics per pair), fused kernel \ablFusedRatio$\times
 precision \ablMixedRatio$\times$ and fp64 \ablFpSixtyFourRatio$\times$ (the consumer GPU
 executes fp64 at a small fraction of the fp32 rate).
 
-\begin{figure}[t]
+\begin{figure}[htbp]
 \centering\includegraphics[width=\linewidth]{../figures/ablation.pdf}
 \caption{Ablations at two sizes.}
 \label{fig:ablation}
@@ -319,7 +319,7 @@ are apples-to-oranges comparisons (one CPU core versus a GPU; different neighbor
 policies) included to document the lineage; CPU timings were taken on a machine shared with
 other jobs (\yamdCpu).
 
-\begin{figure}[t]
+\begin{figure}[htbp]
 \centering\includegraphics[width=\linewidth]{../figures/yamd_compare.pdf}
 \caption{Same-machine comparison with the C++ code \yamd{} (single thread). ``same-algorithm'':
 neighbor list rebuilt every step without skin, as in \yamd; ``pymd-default'': skin and
@@ -358,6 +358,8 @@ more behind, mostly because neighbor search does not map well onto dense array o
 regenerates the benchmark JSON, \texttt{pymd validate} the validation JSON,
 \texttt{figures/make\_figures.py} all figures and the numbers in this paper.
 
+\renewcommand{\bibfont}{\small}
+\setlength{\bibsep}{2pt plus 1pt}
 \bibliographystyle{unsrtnat}
 \bibliography{references}
 \end{document}
