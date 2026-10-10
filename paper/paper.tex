@@ -325,7 +325,9 @@ LAMMPS creates its own lattice and velocities; HOOMD and \pymd{} start from \pym
 lattice. LAMMPS rates are $N$ times steps over LAMMPS' own loop time of each of \cpRepeats{}
 timed \texttt{run} commands after a warm-up run (setup excluded, as in its
 \texttt{Performance} line); HOOMD rates come from the wall time of \texttt{Simulation.run}
-after its autotuner has run. The \pymd{} variants are timed in the same session.
+after its autotuner has finished (up to 600\,s of tuning per size; it finished at every $N$ for
+the single-precision build and at all but the two largest $N$ for the double-precision
+build). The \pymd{} variants are timed in the same session.
 
 \paragraph{Same system.} Before timing, every build integrates an identical initial state
 (\cpVerN{} atoms, \pymd's lattice and velocities, read by LAMMPS through \texttt{read\_data} and

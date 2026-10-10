@@ -293,7 +293,8 @@ def hoomd_worker(spec_path: str) -> int:
             sim.run(100)
             tune_steps = 100
             t_tune = time.perf_counter()
-            while (not sim.operations.is_tuning_complete and tune_steps < 20000
+            # large N needs far more steps than small N before every autotuner has converged
+            while (not sim.operations.is_tuning_complete and tune_steps < spec["tune_steps"]
                    and time.perf_counter() - t_tune < spec["tune_seconds"]):
                 sim.run(200)
                 tune_steps += 200
@@ -328,13 +329,14 @@ def run_hoomd(variant: str, cases: list[tuple[int, Path]], verify_npz: Path | No
             "hoomd_path": str(path) if path else None,
             "verify": str(verify_npz) if verify_npz else None, "repeats": repeats,
             "min_s": min_s, "skin": SKIN, "rc": RC, "dt": DT, "every": EVERY,
-            "tune_seconds": 10.0 if quick else 60.0,
+            "tune_seconds": 10.0 if quick else 600.0,
+            "tune_steps": 20000 if quick else 400000,
             "out": str(tmp / f"hoomd_{variant}.json")}
     sp = tmp / f"hoomd_spec_{variant}.json"
     sp.write_text(json.dumps(spec))
     res = subprocess.run([str(python), "-I", str(Path(__file__).resolve()),
                           "--hoomd-worker", str(sp)], capture_output=True, text=True,
-                         timeout=3600)
+                         timeout=6 * 3600)
     out = Path(spec["out"])
     if not out.exists():
         raise RuntimeError(f"HOOMD worker failed: {(res.stdout + res.stderr)[-600:]}")
@@ -593,6 +595,18 @@ def main(argv=None) -> int:
         "wall_seconds": time.perf_counter() - t_start,
         "runs": runs,
     }
+    if args.only and args.out.exists():  # --only: replace those codes, keep the others
+        old = json.loads(args.out.read_text())
+        doc["runs"] = [r for r in old.get("runs", []) if r.get("code") not in only] + runs
+        for k, v in doc["codes"].items():
+            if v is None:
+                doc["codes"][k] = old.get("codes", {}).get(k)
+        if isinstance(doc.get("verify"), dict):
+            for k, v in old.get("verify", {}).items():
+                doc["verify"].setdefault(k, v)
+        doc["notes"] = old.get("notes", []) + [n for n in notes if n not in old.get("notes", [])]
+        doc["merged_from"] = {"only": sorted(only), "previous_wall_seconds":
+                              old.get("wall_seconds")}
     args.out.parent.mkdir(exist_ok=True)
     args.out.write_text(json.dumps(doc, indent=1, default=float))
     log(f"wrote {args.out}")
