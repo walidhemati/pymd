@@ -1,0 +1,30 @@
+# LAMMPS bench/in.lj (3d LJ melt) with pymd's benchmark settings; driven by bench/counterparts.py
+# variables: nc (fcc cells per side), nwarm (warm-up steps), nsteps (steps per timed run),
+#            nrep (timed runs). Each run prints LAMMPS' "Loop time" and "Performance" lines.
+units           lj
+atom_style      atomic
+
+lattice         fcc 0.8442
+region          box block 0 ${nc} 0 ${nc} 0 ${nc}
+create_box      1 box
+create_atoms    1 box
+mass            1 1.0
+
+velocity        all create 1.44 87287 loop geom
+
+pair_style      lj/cut 2.5
+pair_coeff      1 1 1.0 1.0 2.5
+
+neighbor        0.3 bin
+neigh_modify    delay 0 every 20 check no
+
+fix             1 all nve
+thermo          100000
+
+run             ${nwarm}
+
+variable        i loop ${nrep}
+label           timed
+run             ${nsteps}
+next            i
+jump            SELF timed
