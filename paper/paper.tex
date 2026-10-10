@@ -50,7 +50,8 @@ throughput of the CUDA C reference at $N=\refN$. Correctness is established agai
 NumPy oracle (relative force error $\le\forceErrMax$ in single precision), the
 LAMMPS reference log of \texttt{in.lj}, NIST reference simulation data, the
 Johnson--Zollweg--Gubbins equation of state, and the author's earlier C++ code \yamd{},
-whose forces \pymd{} reproduces to $\yamdForceDiff$.
+whose forces \pymd{} reproduces to $\yamdForceDiff$. We also build LAMMPS (GPU and KOKKOS
+packages) and HOOMD-blue and run them on the same GPU on the same, cross-verified system.
 \end{abstract}
 
 \section{Introduction}
@@ -82,6 +83,10 @@ periodic boundaries, GPU neighbor search and a Langevin thermostat. Contribution
 \item Validation against the LAMMPS \texttt{in.lj} reference output, NIST SRSW Monte Carlo
   data~\cite{nist_srsw}, the JZG equation of state~\cite{johnson1993lj}, and a same-machine
   cross-check and head-to-head with the C++ code \yamd{} (\cref{sec:validation,sec:yamd}).
+\item A same-GPU head-to-head with LAMMPS (GPU and KOKKOS packages, double and single
+  precision) and HOOMD-blue (conda-forge double-precision build and a single-precision source
+  build), after checking that all codes integrate an identical initial state to the same
+  trajectory (\cref{sec:counterparts}).
 \end{itemize}
 
 \section{Background and related work}
@@ -95,7 +100,7 @@ the GPU's capability do the Python \emph{kernel} languages themselves reach? We 
 roofline method~\cite{williams2009roofline}. Textbook background on the algorithms we use is
 in Allen \& Tildesley~\cite{allen2017} and Frenkel \& Smit~\cite{frenkel2002}.
 
-\section{Method}
+\section{Method}\label{sec:method}
 \paragraph{Model.} Atoms interact through the LJ potential
 $u(r)=4\epsilon[(\sigma/r)^{12}-(\sigma/r)^6]$ truncated at $r_c$ (optionally shifted so that
 $u(r_c)=0$), in reduced units $\sigma=\epsilon=m=k_B=1$, with periodic boundaries and the
@@ -293,17 +298,100 @@ executes fp64 at a small fraction of the fp32 rate).
 \label{fig:ablation}
 \end{figure}
 
-\paragraph{Published GPU codes.} We quote published numbers only to place ours in context;
-the problems differ. Anderson et al.\ report 0.0778\,$\mu$s per particle and step for an LJ
-liquid at $\rho^*=0.382$, $r_c=3\sigma$ (43.2 neighbors per particle) on a GeForce 8800\,GTX
-in 2008~\cite{anderson2008hoomd}, and Anderson, Glaser and Glotzer report $275\times10^6$
-particle time steps per second for $N=64{,}000$ at the same density, $k_BT=1.2$, on a single
-V100 GPU~\cite{anderson2020hoomd}. The archived
-LAMMPS benchmark page lists 2.35\,s for 100 steps of the 1-million-atom \texttt{in.lj} problem
-on one Tesla M2090 (2012)~\cite{lammps_bench_archive}, i.e.\ about 43 Matom-steps/s. The
-LAMMPS reference log of \texttt{in.lj} reports 3.752 Matom-step/s on one CPU
-core~\cite{lammps_inlj}. A per-GPU efficiency comparison is more meaningful than raw rates:
-our best variant uses \bestPctCopy\% of this GPU's copy bandwidth under a conservative model.
+\subsection{Same-GPU head-to-head with LAMMPS and HOOMD-blue}\label{sec:counterparts}
+\ifnum\cpProvisional=1
+\begin{center}
+\fcolorbox{red}{red!8}{\parbox{0.92\linewidth}{\centering\bfseries\color{red!70!black}
+PROVISIONAL --- the rates in this subsection come from the smoke run
+\texttt{bench/counterparts.py --quick} ($N=\cpN$) on a GPU shared with other jobs.}}
+\end{center}
+\fi
+Published rates of other codes are for other hardware, densities, cutoffs and precisions, so
+we measure two established GPU MD codes on the same laptop GPU instead. LAMMPS
+\lammpsVersion{} (\texttt{\lammpsTag})~\cite{thompson2022lammps} is built with CMake and
+\texttt{nvcc}~\cpNvcc{} for \texttt{sm\_86} as a serial binary (MPI stubs, no OpenMP) in four
+flavours: the GPU package~\cite{brown2011lammpsgpu} with \texttt{GPU\_PREC=mixed} and
+\texttt{single}, and the KOKKOS package (Kokkos~5.2~\cite{trott2022kokkos}, CUDA back end) with
+\texttt{KOKKOS\_PREC=double} and \texttt{single}. Each runs with its default package settings
+(\texttt{-sf gpu -pk gpu 1}; \texttt{-k on g 1 -sf kk}, i.e.\ a full list with \texttt{newton
+off}); for KOKKOS we also time a half list with \texttt{newton on}. HOOMD-blue
+\hoomdVersion~\cite{anderson2020hoomd} is the conda-forge GPU build, which is compiled with a
+64-bit \texttt{LongReal}, so its pair forces are evaluated in float64; for a like-for-like
+comparison we also build the same release from source with \texttt{HOOMD\_LONGREAL\_SIZE=32}
+(a one-line type fix in its GSD writer is needed to compile). All codes run the \texttt{in.lj}
+problem of \cref{sec:method} with the same skin and the same unchecked rebuild every 20 steps
+(HOOMD: \texttt{nlist.Cell(buffer=0.3, rebuild\_check\_delay=20, check\_dist=False)}).
+LAMMPS creates its own lattice and velocities; HOOMD and \pymd{} start from \pymd's shuffled
+lattice. LAMMPS rates are $N$ times steps over LAMMPS' own loop time of each of \cpRepeats{}
+timed \texttt{run} commands after a warm-up run (setup excluded, as in its
+\texttt{Performance} line); HOOMD rates come from the wall time of \texttt{Simulation.run}
+after its autotuner has run. The \pymd{} variants are timed in the same session.
+
+\paragraph{Same system.} Before timing, every build integrates an identical initial state
+(\cpVerN{} atoms, \pymd's lattice and velocities, read by LAMMPS through \texttt{read\_data} and
+by HOOMD as a snapshot) for 100 steps. At step 0 the potential energy of every build agrees
+with \pymd{} in float64 to $\le\num{\cpVerLammpsZeroEpot}$ (LAMMPS) and $\le\num{\cpVerHoomdZeroEpot}$
+(HOOMD), and the pressure to $\le\num{\cpVerLammpsZeroPress}$ and $\le\num{\cpVerHoomdZeroPress}$; the
+float32 builds set these maxima. After 100 steps all LAMMPS builds agree to
+$\le\num{\cpVerLammpsHundredEpot}$ in energy and $\le\num{\cpVerLammpsHundredPress}$ in pressure, the same
+level as \pymd's own float32 variant ($\num{\cpVerPymdSingleHundredEpot}$, $\num{\cpVerPymdSingleHundredPress}$).
+HOOMD differs by up to $\num{\cpVerHoomdHundredEpot}$ and $\num{\cpVerHoomdHundredPress}$. This comes from
+the benchmark's rebuild schedule, not from the force field: with rebuilds every 20 steps and no
+displacement check, some pairs that cross the cutoff between rebuilds are missed, and which
+ones depends on exactly when a code rebuilds. With the neighbor list kept complete (rebuild
+checks every step), HOOMD agrees with \pymd{} to $\num{\cpVerHoomdEveryOneEpot}$ in energy.
+
+\paragraph{Throughput.} At $N=\cpN$ (\cref{fig:counterparts}) the best \pymd{} variant
+(\texttt{\cpPymdVariant}) runs at \cpPymd{} Matom-steps/s and the best Python kernel language
+(\texttt{\cpPymdPythonVariant}) at \cpPymdPython. The fastest established code is
+\cpCounterCode{} \texttt{\cpCounterVariant} (\cpCounterPrec{} precision) at \cpCounter{}
+Matom-steps/s, so \pymd's best variant reaches \cpRatioCounter$\times$ and its best
+Python-DSL variant \cpRatioPythonCounter$\times$ its throughput. HOOMD-blue runs at
+\cpHoomdSingle{} Matom-steps/s in single precision and \cpHoomdDouble{} in the float64 conda
+build. LAMMPS KOKKOS reaches \cpKokkosSingle{} (\texttt{\cpKokkosSingleVariant}) in single and
+\cpKokkosDouble{} (\texttt{\cpKokkosDoubleVariant}) in double precision, the GPU package
+\cpLmpGpu{} (\texttt{\cpLmpGpuVariant}), and LAMMPS on one CPU core \cpLmpCpu{} at
+$N=\cpLmpCpuN$.
+
+\paragraph{Why the codes differ.} (i) \emph{Precision.} Consumer Ampere GPUs execute float64
+at a small fraction of the float32 rate, so every float64 build (HOOMD from conda-forge,
+KOKKOS by default) is limited by double-precision arithmetic; \pymd's own float64 variant
+(\ablFpSixtyFour{} Matom-steps/s at $N=\ablN$, \cref{fig:ablation}) is in the same range. The
+float64 defaults are the right choice for data-centre GPUs; here single precision is
+\cpHoomdPrecRatio$\times$ faster for HOOMD-blue and \cpKokkosPrecRatio$\times$ for KOKKOS.
+(ii) \emph{KOKKOS in single precision.} \texttt{KOKKOS\_PREC=single} makes the pair arithmetic
+float32, but the neighbor-list build still computes pair distances in float64 (the kernels in
+\texttt{npair\_kokkos.cpp} cast positions to \texttt{double}), and on GPUs it bins atoms with a
+bin edge of a full neighbor cutoff. In a development profile at $N=256{,}000$ (Nsight
+Systems, shared GPU) this build, run every 20 steps by the benchmark, took most of KOKKOS' GPU
+time, more than the force kernel. A half-cutoff bin size and \texttt{neigh/thread on} did not help in development runs, so
+the benchmark keeps the defaults plus the half-list variant. (iii) \emph{GPU package.} Only the
+pair force and the neighbor list run on the GPU (with binning on the host); time integration
+(\texttt{fix nve/gpu}) runs on the CPU, and positions and forces cross PCIe every step. The package is designed for
+several MPI ranks sharing one GPU to hide this, which a serial build cannot do. (iv)
+\emph{HOOMD-blue in single precision} keeps all data on the GPU, uses full neighbor lists and
+autotunes its launch parameters, as \pymd{} does, and is the closest counterpart. Its
+remaining difference to \pymd{} comes from implementation details (list layout, number of
+kernels per step, sorting policy) that we did not profile in depth. At small $N$, per-step
+launch overheads weigh more for codes that launch several kernels per step.
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth]{../figures/counterparts.pdf}
+\caption{Same-GPU comparison on the \texttt{in.lj} melt: \pymd{} (backend colors) versus
+LAMMPS \lammpsVersion{} (GPU and KOKKOS packages, one CPU core) and HOOMD-blue \hoomdVersion{}
+(black and grey). Hatched bars and open markers: float64 arithmetic. Dashed: copy-bandwidth
+roofline of \pymd's full-list traffic model (it does not apply to the other codes' layouts).}
+\label{fig:counterparts}
+\end{figure}
+
+\paragraph{Published numbers.} For context only: Anderson et al.\ report 0.0778\,$\mu$s per
+particle and step for an LJ liquid at $\rho^*=0.382$, $r_c=3\sigma$ (43.2 neighbors per
+particle) on a GeForce 8800\,GTX in 2008~\cite{anderson2008hoomd}, and Anderson, Glaser and
+Glotzer report $275\times10^6$ particle time steps per second for $N=64{,}000$ at the same
+density, $k_BT=1.2$, on a single V100 GPU~\cite{anderson2020hoomd}. The archived LAMMPS
+benchmark page lists 2.35\,s for 100 steps of the 1-million-atom \texttt{in.lj} problem on one
+Tesla M2090 (2012)~\cite{lammps_bench_archive}, i.e.\ about 43 Matom-steps/s, and the LAMMPS
+reference log of \texttt{in.lj} reports 3.752 Matom-step/s on one CPU core~\cite{lammps_inlj}.
 
 \subsection{Head-to-head with the C++ predecessor \yamd}\label{sec:yamd}
 \yamd's MPI-free library sources compile unchanged with \texttt{g++ -O3 -march=native}
@@ -344,7 +432,12 @@ not \texttt{nvcc}; code generation is the same compiler back end but flags diffe
 (iv) The traffic model excludes neighbor-position gathers and rebuilds, so percentages are
 lower bounds on achieved bandwidth, and they are not comparable across codes that use
 different list layouts. (v) Published numbers of other codes are for different densities,
-cutoffs, precisions and hardware. (vi) The \yamd{} comparison mixes CPU and GPU.
+cutoffs, precisions and hardware; this is why \cref{sec:counterparts} measures LAMMPS and
+HOOMD-blue on our GPU. (vi) The \yamd{} comparison mixes CPU and GPU. (vii) We built and ran
+LAMMPS and HOOMD-blue ourselves with their default settings plus the variants listed; experts
+may tune them further (e.g.\ several MPI ranks per GPU for the LAMMPS GPU package, which our
+serial build cannot use), and the source build of HOOMD-blue in single precision is not an
+official binary.
 
 \section{Conclusion}
 Python kernel languages are not a compromise for short-range MD: on the LAMMPS LJ benchmark

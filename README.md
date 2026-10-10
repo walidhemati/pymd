@@ -126,6 +126,15 @@ lower bound on the bandwidth actually used. Ceiling: 361 GB/s measured device-to
    force+kick+drift (one launch per step), half lists with atomics, Morton ordering,
    mixed/fp64 precision.
 
+## Same-GPU head-to-head with LAMMPS and HOOMD-blue
+
+`bench/counterparts.py` runs LAMMPS (stable 30 Sep 2026; GPU and KOKKOS packages, float64 and
+float32 builds via `bench/lammps/build_lammps.sh`) and HOOMD-blue 7.2.0 (conda-forge float64
+build and a float32 source build, `bench/hoomd/build_hoomd_single.sh`) on the same GPU and the
+same `in.lj` system, after checking that all codes integrate an identical initial state to the
+same trajectory. Results: `results/counterparts.json`, `figures/counterparts.png` and the paper
+(the current file is a `--quick` smoke run on a shared GPU, so its numbers are provisional).
+
 ## Head-to-head with yamd (C++)
 
 `bench/yamd_compare.py` compiles yamd's own sources (`g++ -O3 -march=native`, single thread) next
@@ -139,6 +148,7 @@ lineage; see `figures/yamd_compare.png` and the paper.
 ```bash
 python bench/run.py --full                 # results/rtx3070-laptop.json  (< 15 min, idle GPU)
 python bench/yamd_compare.py               # results/yamd-compare.json    (needs a yamd checkout)
+python bench/counterparts.py --full        # results/counterparts.json    (needs LAMMPS/HOOMD builds)
 pymd validate                              # results/validation.json      (~20 min)
 python figures/make_figures.py             # figures/*.pdf|png, paper/results.tex, README tables
 python figures/make_hero.py                # docs/media/hero.gif

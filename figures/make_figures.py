@@ -8,6 +8,7 @@ comes from here.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -31,6 +32,9 @@ COL_W, FULL_W = 3.4, 7.0
 COLORS = {"numpy": "#7f7f7f", "torch-eager": "#9467bd", "torch-compile": "#8c564b",
           "triton": "#1f77b4", "warp": "#2ca02c", "numba": "#ff7f0e", "cupy-cuda-c": "#d62728",
           "yamd": "#000000"}
+#: same-GPU counterparts (black/grey); hatching marks float64 arithmetic
+CP_STYLE = {"lammps/kokkos": ("#000000", "o", "-"), "lammps/gpu": ("#555555", "s", "--"),
+            "lammps/cpu": ("#b0b0b0", "x", ":"), "hoomd": ("#8c8c8c", "D", "-.")}
 LADDER = ["numpy", "torch-eager", "torch-compile", "numba", "warp", "triton", "cupy-cuda-c"]
 MARKERS = {"full": "o", "full-fused": "s", "half-atomic": "^", "gather": "D", "hashgrid": "v",
            "cell-verlet": "o", "allpairs": "x"}
@@ -308,12 +312,216 @@ def fig_yamd(ym) -> None:
     save(fig, "yamd_compare")
 
 
+# ----------------------------------------------------------------------------- counterparts
+def cp_family(r) -> str:
+    if r["code"] == "pymd":
+        return r.get("backend", r["variant"].split("/")[0])
+    if r["code"] == "hoomd":
+        return "hoomd"
+    return "lammps/" + r["variant"].split("-")[0]
+
+
+def cp_color(r) -> str:
+    fam = cp_family(r)
+    return COLORS[fam] if fam in COLORS else CP_STYLE[fam][0]
+
+
+def cp_label(r) -> str:
+    if r["code"] == "pymd":
+        return "pymd " + r["variant"]
+    return f"{'LAMMPS' if r['code'] == 'lammps' else 'HOOMD'} {r['variant']}"
+
+
+def cp_ok(cp) -> list[dict]:
+    return [r for r in cp.get("runs", []) if "error" not in r]
+
+
+def cp_ref_size(cp) -> int | None:
+    """Largest N at which pymd, LAMMPS KOKKOS (or GPU) and HOOMD all have a rate."""
+    ok = cp_ok(cp)
+    if not ok:
+        return None
+    groups = [{r["n"] for r in ok if r["code"] == "pymd"},
+              {r["n"] for r in ok if r["code"] == "lammps" and r["variant"] != "cpu-1core"},
+              {r["n"] for r in ok if r["code"] == "hoomd"}]
+    groups = [g for g in groups if g]
+    common = set.intersection(*groups) if groups else set()
+    return max(common) if common else max(r["n"] for r in ok)
+
+
+def fig_counterparts(cp, doc) -> None:
+    if not cp or not cp_ok(cp):
+        return
+    ok = cp_ok(cp)
+    n = cp_ref_size(cp)
+    sizes = sorted({r["n"] for r in ok})
+    multi = len(sizes) > 1
+    fig, axs = plt.subplots(1, 2 if multi else 1, figsize=(FULL_W if multi else COL_W * 1.25,
+                                                         3.0), squeeze=False)
+    ax = axs[0, 0]
+    rs = sorted([r for r in ok if r["n"] == n], key=lambda r: r["median"])
+    y = np.arange(len(rs))
+    ax.barh(y, [r["median"] / 1e6 for r in rs], color=[cp_color(r) for r in rs],
+            hatch=None, edgecolor="white", lw=0.3)
+    for yi, r in zip(y, rs):
+        if r.get("precision") == "double":
+            ax.barh(yi, r["median"] / 1e6, color="none", edgecolor="white", hatch="////",
+                    lw=0)
+        ax.text(r["median"] / 1e6 * 1.03, yi, f"{r['median'] / 1e6:.1f}", va="center",
+                fontsize=5.5)
+    ax.set_yticks(y, [cp_label(r) for r in rs], fontsize=6)
+    nl = [r["mean_list_entries_per_atom"] for r in ok
+          if r.get("variant") == "cupy-cuda-c/full" and r.get("mean_list_entries_per_atom")]
+    if nl:
+        c = ceiling_rate(doc, float(np.median(nl))) / 1e6
+        ax.axvline(c, color="k", ls="--", lw=0.8)
+        ax.text(c * 0.95, -0.4, "copy-BW roofline\n(pymd full list)", fontsize=5.5,
+                va="bottom", ha="right")
+    ax.set_xscale("log")
+    ax.set_xlabel("Matom-steps / s")
+    prov = "provisional, shared GPU; " if cp.get("provisional") else ""
+    ax.set_title(f"N = {n:,} ({prov}hatched: float64)", fontsize=7)
+    if multi:
+        ax = axs[0, 1]
+        keys = sorted({(r["code"], r["variant"]) for r in ok})
+        for code, var in keys:
+            rr = sorted([r for r in ok if (r["code"], r["variant"]) == (code, var)],
+                        key=lambda r: r["n"])
+            if len(rr) < 2:
+                continue
+            fam = cp_family(rr[0])
+            if code == "pymd":
+                st = dict(color=COLORS[fam], marker="o", ls="-")
+            else:
+                col, mk, ls = CP_STYLE[fam]
+                st = dict(color=col, marker="^" if var.endswith("-half") else mk,
+                          ls=":" if var.endswith("-half") else ls,
+                          mfc="none" if rr[0].get("precision") == "double" else col)
+            ax.plot([r["n"] for r in rr], [r["median"] / 1e6 for r in rr], ms=3, lw=1,
+                    label=cp_label(rr[0]), **st)
+        if nl:
+            ax.axhline(c, color="k", ls="--", lw=0.8)
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xlabel("atoms N")
+        ax.set_ylabel("Matom-steps / s")
+        ax.legend(fontsize=5, frameon=False, loc="upper left", bbox_to_anchor=(1.0, 1.0))
+        ax.set_title("vs size (open: float64; triangles: half list)", fontsize=7)
+    fig.tight_layout()
+    save(fig, "counterparts")
+
+
+def cp_macros(cp) -> dict:
+    m: dict[str, str] = {}
+    ok = cp_ok(cp)
+    if not ok:
+        return m
+    n = cp_ref_size(cp)
+    at = [r for r in ok if r["n"] == n]
+    m["cpProvisional"] = "1" if cp.get("provisional", True) else "0"
+    m["cpSource"] = "counterparts.json"
+    m["cpN"] = fmt(n, 0)
+    m["cpRepeats"] = str(cp.get("settings", {}).get("repeats", "?"))
+
+    def best(pred):
+        c = [r for r in at if pred(r)]
+        return max(c, key=lambda r: r["median"]) if c else None
+
+    pick = {
+        "Pymd": best(lambda r: r["code"] == "pymd"),
+        "PymdPython": best(lambda r: r["code"] == "pymd" and r.get("backend") != "cupy-cuda-c"),
+        "Kokkos": best(lambda r: r["code"] == "lammps" and r["variant"].startswith("kokkos")),
+        "KokkosDouble": best(lambda r: r["code"] == "lammps"
+                             and r["variant"].startswith("kokkos-double")),
+        "KokkosSingle": best(lambda r: r["code"] == "lammps"
+                             and r["variant"].startswith("kokkos-single")),
+        "LmpGpu": best(lambda r: r["code"] == "lammps" and r["variant"].startswith("gpu")),
+        "HoomdDouble": best(lambda r: r["code"] == "hoomd" and r["variant"] == "gpu-double"),
+        "HoomdSingle": best(lambda r: r["code"] == "hoomd" and r["variant"] == "gpu-single"),
+        "Counter": best(lambda r: r["code"] != "pymd" and r["variant"] != "cpu-1core"),
+    }
+    for tag, r in pick.items():
+        if r is None:
+            continue
+        m[f"cp{tag}"] = fmt(r["median"] / 1e6, 1)
+        m[f"cp{tag}Variant"] = r["variant"].replace("_", r"\_")
+    if "cpCounter" in m:
+        r = pick["Counter"]
+        m["cpCounterPrec"] = r.get("precision", "?")
+        m["cpCounterCode"] = "LAMMPS" if r["code"] == "lammps" else "HOOMD-blue"
+    pm = pick["Pymd"]
+    for tag in ("Kokkos", "KokkosDouble", "KokkosSingle", "LmpGpu", "HoomdDouble",
+                "HoomdSingle", "Counter"):
+        r = pick[tag]
+        if pm and r:
+            m[f"cpRatio{tag}"] = fmt(pm["median"] / r["median"], 2)
+    for a, b, tag in (("HoomdSingle", "HoomdDouble", "Hoomd"),
+                      ("KokkosSingle", "KokkosDouble", "Kokkos")):
+        if pick[a] and pick[b]:
+            m[f"cp{tag}PrecRatio"] = fmt(pick[a]["median"] / pick[b]["median"], 1)
+    pp = pick["PymdPython"]
+    if pp and pick["Counter"]:
+        m["cpRatioPythonCounter"] = fmt(pp["median"] / pick["Counter"]["median"], 2)
+    cpu = [r for r in ok if r["variant"] == "cpu-1core"]
+    if cpu:
+        r = max(cpu, key=lambda r: r["n"])
+        m["cpLmpCpu"] = fmt(r["median"] / 1e6, 2)
+        m["cpLmpCpuN"] = fmt(r["n"], 0)
+    hs = [r for r in ok if r["code"] == "hoomd"]
+    if hs:
+        m["cpHoomdTuned"] = "1" if all(r.get("tuning_complete") for r in hs) else "0"
+    lmp = (cp.get("codes") or {}).get("lammps") or {}
+    m["lammpsVersion"] = lmp.get("version") or "?"
+    m["lammpsTag"] = (lmp.get("tag") or "?").replace("_", r"\_")
+    hd = (cp.get("codes") or {}).get("hoomd") or {}
+    vers = [v.get("hoomd_version") for v in (hd.get("variants") or {}).values()]
+    m["hoomdVersion"] = vers[0] if vers else "?"
+    mach = cp.get("machine", {})
+    nv = re.search(r"cuda_(\d+\.\d+)", mach.get("nvcc") or "")
+    m["cpNvcc"] = nv.group(1) if nv else "?"
+    ver = cp.get("verify") or {}
+    rows = [r for r in ver.get("rows", []) if "rel_diff_step0" in r and r["code"] != "pymd"]
+    if rows:
+        m["cpVerN"] = fmt(ver["n"], 0)
+        for code, tag in (("lammps", "Lammps"), ("hoomd", "Hoomd")):
+            rr = [r for r in rows if r["code"] == code]
+            if not rr:
+                continue
+            for st, stag in (("step0", "Zero"), ("step100", "Hundred")):
+                for k, ktag in (("epot", "Epot"), ("pressure", "Press"), ("etot", "Etot")):
+                    v = max(r[f"rel_diff_{st}"][k] for r in rr)
+                    m[f"cpVer{tag}{stag}{ktag}"] = f"{v:.0e}"
+        e1 = [r["rel_diff_step100_rebuild_every_1"] for r in rows
+              if "rel_diff_step100_rebuild_every_1" in r]
+        if e1:
+            m["cpVerHoomdEveryOneEpot"] = f"{max(x['epot'] for x in e1):.0e}"
+            m["cpVerHoomdEveryOnePress"] = f"{max(x['pressure'] for x in e1):.0e}"
+        f32 = [r for r in ver.get("rows", []) if r.get("variant") == "cupy-cuda-c/full"
+               and "rel_diff_step100" in r]
+        if f32:
+            m["cpVerPymdSingleHundredEpot"] = f"{f32[0]['rel_diff_step100']['epot']:.0e}"
+            m["cpVerPymdSingleHundredPress"] = f"{f32[0]['rel_diff_step100']['pressure']:.0e}"
+    return m
+
+
+def cp_table(cp) -> str:
+    """Markdown table of the same-GPU comparison at the reference size (README)."""
+    ok = cp_ok(cp)
+    n = cp_ref_size(cp)
+    rows = sorted([r for r in ok if r["n"] == n], key=lambda r: -r["median"])
+    out = ["| code | variant | precision | Matom-steps/s |", "|---|---|---|---:|"]
+    for r in rows:
+        out.append(f"| {r['code']} | {r['variant']} | {r.get('precision', '?')} | "
+                   f"{r['median'] / 1e6:.1f} |")
+    return "\n".join(out)
+
+
 # ----------------------------------------------------------------------------- results.tex
 def fmt(x, nd=1):
     return f"{x:,.{nd}f}".replace(",", "{,}")
 
 
-def write_tex(doc, val, ym) -> dict:
+def write_tex(doc, val, ym, cp=None) -> dict:
     ok = [r for r in runs_ok(doc) if r["backend"] != "numpy"]
     best = max(ok, key=lambda r: r["median"])
     m = {}
@@ -467,6 +675,8 @@ def write_tex(doc, val, ym) -> dict:
                 m["yamdEamGpuRatio"] = fmt(v / big["yamd_cpp_1thread"], 0)
         m["yamdCpu"] = ym.get("cpu", "?")
         m["yamdProvisional"] = "1" if ym.get("provisional", True) else "0"
+    if cp:
+        m.update(cp_macros(cp))
     lines = ["% GENERATED by figures/make_figures.py from results/*.json -- do not edit"]
     for k, v in m.items():
         lines.append(rf"\newcommand{{\{k}}}{{{v}}}")
@@ -528,6 +738,7 @@ def main() -> None:
     doc = bench_doc()
     val = load("validation.json")
     ym = load("yamd-compare.json")
+    cp = load("counterparts.json")
     fig_perf_vs_size(doc)
     fig_roofline_bars(doc)
     fig_roofline(doc)
@@ -536,11 +747,16 @@ def main() -> None:
         fig_validation(val)
         fig_rdf(val)
     fig_yamd(ym)
-    m = write_tex(doc, val, ym)
+    fig_counterparts(cp, doc)
+    m = write_tex(doc, val, ym, cp)
     (RES / "perf_table.md").write_text(
         f"Source: results/{doc['_source']} (provisional: {doc.get('provisional')}), "
         f"N = {ref_size(doc):,}\n\n" + perf_table(doc) + "\n")
     update_readme(doc, m)
+    if cp and cp_ok(cp):
+        (RES / "counterparts_table.md").write_text(
+            f"Source: results/counterparts.json (provisional: {cp.get('provisional')}), "
+            f"N = {cp_ref_size(cp):,}\n\n" + cp_table(cp) + "\n")
     print(f"figures from {doc['_source']}; best {m['bestBackend']}/{m['bestVariant']} "
           f"{m['bestRate']} Matom-steps/s at N={m['bestN']}")
 

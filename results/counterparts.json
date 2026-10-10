@@ -1,0 +1,840 @@
+{
+ "provisional": true,
+ "mode": "quick",
+ "benchmark": "LAMMPS bench/in.lj melt: fcc 0.8442, T0 1.44, lj/cut 2.5 (no shift), NVE dt 0.005, skin 0.3, rebuild every 20 steps (no check)",
+ "settings": {
+  "density": 0.8442,
+  "t0": 1.44,
+  "rc": 2.5,
+  "skin": 0.3,
+  "dt": 0.005,
+  "rebuild_every": 20,
+  "check": false,
+  "cells": [
+   20
+  ],
+  "repeats": 5,
+  "min_seconds_per_repeat": 0.1
+ },
+ "machine": {
+  "python": "3.13.2",
+  "date": "2026-10-10T15:31:07",
+  "torch": "2.7.0+cu126",
+  "triton": "3.3.0",
+  "warp": "1.18.0",
+  "cupy": "13.5.1",
+  "numba": "0.68.0",
+  "numpy": "2.5.3",
+  "gpu": "NVIDIA GeForce RTX 3070 Laptop GPU",
+  "driver": "595.91.07",
+  "cpu": "AMD Ryzen 7 5800H with Radeon Graphics",
+  "nvcc": "Build cuda_13.4.r13.4/compiler.38855100_0",
+  "gcc": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+ },
+ "codes": {
+  "lammps": {
+   "source": "/home/hemati/python-hpc/_ref/lammps",
+   "builds": {
+    "gpu-mixed": {
+     "exe": "/home/hemati/python-hpc/_ref/lammps-builds/gpu-mixed/lmp_gpu-mixed",
+     "BUILD_MPI": "no",
+     "BUILD_OMP": "no",
+     "CMAKE_BUILD_TYPE": "Release",
+     "CMAKE_CXX_COMPILER": "/usr/bin/c++",
+     "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+     "CUDA_NVCC_FLAGS": "-allow-unsupported-compiler",
+     "GPU_API": "cuda",
+     "GPU_ARCH": "sm_86",
+     "GPU_PREC": "mixed",
+     "cmake": "cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_MPI=no -D BUILD_OMP=no -D LAMMPS_MACHINE=gpu-mixed -C /home/hemati/python-hpc/_ref/lammps/cmake/presets/gpu-cuda.cmake -D GPU_PREC=mixed -D GPU_ARCH=sm_86 -D CUDA_BUILD_MULTIARCH=off /home/hemati/python-hpc/_ref/lammps/cmake",
+     "version": "30 Sep 2026",
+     "compiler": "GNU C++ 15.2.0 with OpenMP not enabled",
+     "accelerator": "GPU package API: CUDA | GPU package precision: mixed | Compatible GPU present: yes"
+    },
+    "gpu-single": {
+     "exe": "/home/hemati/python-hpc/_ref/lammps-builds/gpu-single/lmp_gpu-single",
+     "BUILD_MPI": "no",
+     "BUILD_OMP": "no",
+     "CMAKE_BUILD_TYPE": "Release",
+     "CMAKE_CXX_COMPILER": "/usr/bin/c++",
+     "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+     "CUDA_NVCC_FLAGS": "-allow-unsupported-compiler",
+     "GPU_API": "cuda",
+     "GPU_ARCH": "sm_86",
+     "GPU_PREC": "single",
+     "cmake": "cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_MPI=no -D BUILD_OMP=no -D LAMMPS_MACHINE=gpu-single -C /home/hemati/python-hpc/_ref/lammps/cmake/presets/gpu-cuda.cmake -D GPU_PREC=single -D GPU_ARCH=sm_86 -D CUDA_BUILD_MULTIARCH=off /home/hemati/python-hpc/_ref/lammps/cmake",
+     "version": "30 Sep 2026",
+     "compiler": "GNU C++ 15.2.0 with OpenMP not enabled",
+     "accelerator": "GPU package API: CUDA | GPU package precision: single | Compatible GPU present: yes"
+    },
+    "kokkos-double": {
+     "exe": "/home/hemati/python-hpc/_ref/lammps-builds/kokkos-double/lmp_kokkos-double",
+     "BUILD_MPI": "no",
+     "BUILD_OMP": "no",
+     "CMAKE_BUILD_TYPE": "Release",
+     "CMAKE_CXX_COMPILER": "/home/hemati/python-hpc/_ref/lammps/lib/kokkos/bin/nvcc_wrapper",
+     "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+     "KOKKOS_PREC": "double",
+     "Kokkos_ARCH_AMPERE86": "yes",
+     "Kokkos_ENABLE_CUDA": "ON",
+     "cmake": "cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_MPI=no -D BUILD_OMP=no -D LAMMPS_MACHINE=kokkos-double -C /home/hemati/python-hpc/_ref/lammps/cmake/presets/kokkos-cuda.cmake -D Kokkos_ARCH_AMPERE86=yes -D KOKKOS_PREC=double /home/hemati/python-hpc/_ref/lammps/cmake",
+     "version": "30 Sep 2026",
+     "compiler": "GNU C++ 15.2.0 with OpenMP not enabled",
+     "accelerator": "KOKKOS package API: CUDA Serial | KOKKOS package precision: double | KOKKOS package random numbers: device | KOKKOS package view layout: legacy | Kokkos library version: 5.2.1"
+    },
+    "kokkos-single": {
+     "exe": "/home/hemati/python-hpc/_ref/lammps-builds/kokkos-single/lmp_kokkos-single",
+     "BUILD_MPI": "no",
+     "BUILD_OMP": "no",
+     "CMAKE_BUILD_TYPE": "Release",
+     "CMAKE_CXX_COMPILER": "/home/hemati/python-hpc/_ref/lammps/lib/kokkos/bin/nvcc_wrapper",
+     "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+     "KOKKOS_PREC": "single",
+     "Kokkos_ARCH_AMPERE86": "yes",
+     "Kokkos_ENABLE_CUDA": "ON",
+     "cmake": "cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_MPI=no -D BUILD_OMP=no -D LAMMPS_MACHINE=kokkos-single -C /home/hemati/python-hpc/_ref/lammps/cmake/presets/kokkos-cuda.cmake -D Kokkos_ARCH_AMPERE86=yes -D KOKKOS_PREC=single /home/hemati/python-hpc/_ref/lammps/cmake",
+     "version": "30 Sep 2026",
+     "compiler": "GNU C++ 15.2.0 with OpenMP not enabled",
+     "accelerator": "KOKKOS package API: CUDA Serial | KOKKOS package precision: single | KOKKOS package random numbers: device | KOKKOS package view layout: legacy | Kokkos library version: 5.2.1"
+    }
+   },
+   "commit": "8de817dd79bfe4525d5d39246a212d833e6dee07",
+   "tag": "stable_30Sep2026",
+   "version": "30 Sep 2026"
+  },
+  "hoomd": {
+   "conda": {
+    "conda_package": "hoomd=7.2.0=gpu_py313_h6ce9c54_0",
+    "channel": "https://conda.anaconda.org/conda-forge/noarch",
+    "env": "/home/hemati/python-hpc/_ref/hoomdenv"
+   },
+   "source": {
+    "path": "/home/hemati/python-hpc/_ref/hoomd-blue",
+    "commit": "8578236c7ce99151f9ec4b707b2095227494674d",
+    "tag": "v7.2.0",
+    "cmake": "cmake -B /home/hemati/python-hpc/_ref/hoomd-blue/build-single -S /home/hemati/python-hpc/_ref/hoomd-blue -GNinja -DCMAKE_BUILD_TYPE=Release -DENABLE_GPU=on -DCUDA_ARCH_LIST=86 -DHOOMD_LONGREAL_SIZE=32 -DHOOMD_SHORTREAL_SIZE=32 -DENABLE_MPI=off -DBUILD_HPMC=off -DBUILD_METAL=off -DBUILD_MPCD=off -DBUILD_TESTING=off -DPython_EXECUTABLE=/home/hemati/python-hpc/_ref/hoomdbuild/bin/python -DCMAKE_PREFIX_PATH=/home/hemati/python-hpc/_ref/hoomdbuild -DCMAKE_C_COMPILER=/home/hemati/python-hpc/_ref/hoomdbuild/bin/x86_64-conda-linux-gnu-gcc -DCMAKE_CXX_COMPILER=/home/hemati/python-hpc/_ref/hoomdbuild/bin/x86_64-conda-linux-gnu-g++ -DCMAKE_CUDA_COMPILER=/home/hemati/python-hpc/_ref/hoomdbuild/bin/nvcc -DCMAKE_CUDA_HOST_COMPILER=/home/hemati/python-hpc/_ref/hoomdbuild/bin/x86_64-conda-linux-gnu-g++"
+   },
+   "variants": {
+    "gpu-double": {
+     "hoomd_version": "7.2.0",
+     "device": "[0]NVIDIA GeForce RTX 3070 Laptop GPU  40 SM_8.6 @ 1.29 GHz, 7842 MiB DRAM",
+     "precision": [
+      64,
+      32
+     ],
+     "gpu_api_version": "12.9",
+     "compile_flags": "GPU [CUDA] (12.9) DOUBLE[SINGLE] SSE SSE2 SSE3 ",
+     "module": "/home/hemati/python-hpc/_ref/hoomdenv/lib/python3.13/site-packages/hoomd/__init__.py",
+     "description": "conda-forge GPU build (LongReal = 64 bit, ShortReal = 32 bit): pair forces evaluated in float64"
+    },
+    "gpu-single": {
+     "hoomd_version": "7.2.0",
+     "device": "[0]NVIDIA GeForce RTX 3070 Laptop GPU  40 SM_8.6 @ 1.29 GHz, 7842 MiB DRAM",
+     "precision": [
+      32,
+      32
+     ],
+     "gpu_api_version": "12.9",
+     "compile_flags": "GPU [CUDA] (12.9) SINGLE[SINGLE] SSE SSE2 ",
+     "module": "/home/hemati/python-hpc/_ref/hoomd-blue/build-single/hoomd/__init__.py",
+     "description": "source build of the same release with HOOMD_LONGREAL_SIZE=32 (bench/hoomd/build_hoomd_single.sh)"
+    }
+   }
+  },
+  "pymd": {
+   "source": "this repository",
+   "variants": [
+    "cupy-cuda-c/full",
+    "cupy-cuda-c/full-fused",
+    "triton/full-fused"
+   ]
+  }
+ },
+ "lammps_variants": {
+  "kokkos-double": {
+   "build": "kokkos-double",
+   "flags": "-k on g 1 -sf kk",
+   "precision": "double",
+   "neighbor": "KOKKOS CUDA defaults: full list, newton off; build, force and integration on the GPU"
+  },
+  "kokkos-double-half": {
+   "build": "kokkos-double",
+   "flags": "-k on g 1 -sf kk -pk kokkos neigh half newton on",
+   "precision": "double",
+   "neighbor": "KOKKOS CUDA: half list, newton on (atomic force scatter)"
+  },
+  "kokkos-single": {
+   "build": "kokkos-single",
+   "flags": "-k on g 1 -sf kk",
+   "precision": "single",
+   "neighbor": "KOKKOS CUDA (KOKKOS_PREC=single): full list, newton off"
+  },
+  "kokkos-single-half": {
+   "build": "kokkos-single",
+   "flags": "-k on g 1 -sf kk -pk kokkos neigh half newton on",
+   "precision": "single",
+   "neighbor": "KOKKOS CUDA (KOKKOS_PREC=single): half list, newton on"
+  },
+  "gpu-mixed": {
+   "build": "gpu-mixed",
+   "flags": "-sf gpu -pk gpu 1",
+   "precision": "mixed",
+   "neighbor": "GPU package: pair + neighbor list on the GPU (host binning); integration and atom sorting on the CPU, positions/forces cross PCIe every step"
+  },
+  "gpu-single": {
+   "build": "gpu-single",
+   "flags": "-sf gpu -pk gpu 1",
+   "precision": "single",
+   "neighbor": "GPU package (GPU_PREC=single), as gpu-mixed"
+  },
+  "cpu-1core": {
+   "build": "gpu-mixed",
+   "flags": "",
+   "precision": "double",
+   "neighbor": "plain lj/cut on one CPU core (no accelerator)"
+  }
+ },
+ "verify": {
+  "n": 32000,
+  "reference": "pymd cupy-cuda-c/full-fp64",
+  "state": "fcc_lattice(20) in lattice order, uniform velocities seed 1, T = 1.44",
+  "reference_step100_rebuild_every_1": {
+   "epot": -5.762925601564344,
+   "ekin": 1.1405605214702437,
+   "etot": -4.6223650800941005,
+   "temp": 0.7603974434002687,
+   "pressure": 0.17841916179555944,
+   "virial": -52706.55859990262
+  },
+  "rows": [
+   {
+    "code": "pymd",
+    "variant": "cupy-cuda-c/full-fp64",
+    "step0": {
+     "temp": 1.44,
+     "epot": -6.773368053252954,
+     "etot": -4.613435553252954,
+     "pressure": -5.019707259085584
+    },
+    "step100": {
+     "temp": 0.7603904905314323,
+     "epot": -5.762931771292835,
+     "etot": -4.622381678799931,
+     "pressure": 0.17838073610495583
+    },
+    "rel_diff_step0": {
+     "temp": 0.0,
+     "epot": 0.0,
+     "etot": 0.0,
+     "pressure": 0.0
+    },
+    "rel_diff_step100": {
+     "temp": 0.0,
+     "epot": 0.0,
+     "etot": 0.0,
+     "pressure": 0.0
+    }
+   },
+   {
+    "code": "pymd",
+    "variant": "cupy-cuda-c/full",
+    "step0": {
+     "temp": 1.4399999994231043,
+     "epot": -6.773367385044694,
+     "etot": -4.61343488591001,
+     "pressure": -5.019708066610211
+    },
+    "step100": {
+     "temp": 0.7603916852406456,
+     "epot": -5.762934555526823,
+     "etot": -4.6223826710261005,
+     "pressure": 0.17837524858565104
+    },
+    "rel_diff_step0": {
+     "temp": 4.006219738666377e-10,
+     "epot": 9.865228851254692e-08,
+     "etot": 1.4465205720748253e-07,
+     "pressure": 1.6087086077561275e-07
+    },
+    "rel_diff_step100": {
+     "temp": 1.5711785302600105e-06,
+     "epot": 4.831280498791177e-07,
+     "etot": 2.1465691035906466e-07,
+     "pressure": 3.0762959188391984e-05
+    }
+   },
+   {
+    "code": "lammps",
+    "variant": "kokkos-double",
+    "step0": {
+     "temp": 1.44,
+     "epot": -6.773368053,
+     "etot": -4.613435553,
+     "pressure": -5.019707259
+    },
+    "step100": {
+     "temp": 0.7603904905,
+     "epot": -5.762931771,
+     "etot": -4.622381679,
+     "pressure": 0.1783807361
+    },
+    "rel_diff_step0": {
+     "temp": 0.0,
+     "epot": 3.734526338179914e-11,
+     "etot": 5.482968408483288e-11,
+     "pressure": 1.704959670486338e-11
+    },
+    "rel_diff_step100": {
+     "temp": 4.133705194591821e-11,
+     "epot": 5.0813561765402755e-11,
+     "etot": 4.328272920049153e-11,
+     "pressure": 2.7782379426786684e-11
+    }
+   },
+   {
+    "code": "lammps",
+    "variant": "kokkos-single",
+    "step0": {
+     "temp": 1.44,
+     "epot": -6.773367187,
+     "etot": -4.613434687,
+     "pressure": -5.019708898
+    },
+    "step100": {
+     "temp": 0.7603919144,
+     "epot": -5.762935547,
+     "etot": -4.622383319,
+     "pressure": 0.1783696669
+    },
+    "rel_diff_step0": {
+     "temp": 0.0,
+     "epot": 1.2789102068605215e-07,
+     "etot": 1.8776743357821907e-07,
+     "pressure": 3.2649601501314597e-07
+    },
+    "rel_diff_step100": {
+     "temp": 1.872549151322253e-06,
+     "epot": 6.55171241746681e-07,
+     "etot": 3.5483873532555323e-07,
+     "pressure": 6.205381364341727e-05
+    }
+   },
+   {
+    "code": "lammps",
+    "variant": "gpu-mixed",
+    "step0": {
+     "temp": 1.44,
+     "epot": -6.773368373,
+     "etot": -4.613435873,
+     "pressure": -5.019706915
+    },
+    "step100": {
+     "temp": 0.760390479,
+     "epot": -5.762931476,
+     "etot": -4.622381401,
+     "pressure": 0.1783813866
+    },
+    "rel_diff_step0": {
+     "temp": 0.0,
+     "epot": 4.720650702925776e-08,
+     "etot": 6.930779522696062e-08,
+     "pressure": 6.854694215770345e-08
+    },
+    "rel_diff_step100": {
+     "temp": 1.5165145273529888e-08,
+     "epot": 5.124003655567818e-08,
+     "etot": 6.009887324727417e-08,
+     "pressure": 3.6466664414957814e-06
+    }
+   },
+   {
+    "code": "lammps",
+    "variant": "gpu-single",
+    "step0": {
+     "temp": 1.44,
+     "epot": -6.773368453,
+     "etot": -4.613435953,
+     "pressure": -5.019707101
+    },
+    "step100": {
+     "temp": 0.7603904849,
+     "epot": -5.762931491,
+     "etot": -4.622381407,
+     "pressure": 0.1783813966
+    },
+    "rel_diff_step0": {
+     "temp": 0.0,
+     "epot": 5.901747003685364e-08,
+     "etot": 8.664845135846202e-08,
+     "pressure": 3.149298864958988e-08
+    },
+    "rel_diff_step100": {
+     "temp": 7.405974008834687e-09,
+     "epot": 4.863719479734453e-08,
+     "etot": 5.880084118822068e-08,
+     "pressure": 3.702726306552357e-06
+    }
+   },
+   {
+    "code": "hoomd",
+    "variant": "gpu-double",
+    "step0": {
+     "temp": 1.44,
+     "epot": -6.773368053252955,
+     "etot": -4.613435553252955,
+     "pressure": -5.019707259085586,
+     "dof": 95997.0
+    },
+    "step100": {
+     "temp": 0.7603906403200968,
+     "epot": -5.7628958791495215,
+     "etot": -4.622345561980641,
+     "pressure": 0.17843763701491946,
+     "dof": 95997.0
+    },
+    "step100_rebuild_every_1": {
+     "temp": 0.7603974434002694,
+     "epot": -5.762925601564343,
+     "etot": -4.622365080094099,
+     "pressure": 0.1784191617955629,
+     "dof": 95997.0
+    },
+    "rel_diff_step0": {
+     "temp": 0.0,
+     "epot": 2.6225606307443216e-16,
+     "etot": 3.850399163260736e-16,
+     "pressure": 5.308148705838598e-16
+    },
+    "rel_diff_step100": {
+     "temp": 1.9698913446200766e-07,
+     "epot": 6.2281048497303515e-06,
+     "etot": 7.813465395034372e-06,
+     "pressure": 0.00031898573358365013
+    },
+    "rel_diff_step100_rebuild_every_1": {
+     "temp": 8.760337380887866e-16,
+     "epot": 1.5411936247433586e-16,
+     "etot": 3.8429609271885725e-16,
+     "pressure": 1.92899201055637e-14
+    }
+   },
+   {
+    "code": "hoomd",
+    "variant": "gpu-single",
+    "step0": {
+     "temp": 1.440000057220459,
+     "epot": -6.77336865234375,
+     "etot": -4.61343603515625,
+     "pressure": -5.019708156585693,
+     "dof": 95997.0
+    },
+    "step100": {
+     "temp": 0.7603909373283386,
+     "epot": -5.762896484375,
+     "etot": -4.622345703125,
+     "pressure": 0.17843899130821228,
+     "dof": 95997.0
+    },
+    "step100_rebuild_every_1": {
+     "temp": 0.7603977918624878,
+     "epot": -5.76292578125,
+     "etot": -4.62236474609375,
+     "pressure": 0.17842096090316772,
+     "dof": 95997.0
+    },
+    "rel_diff_step0": {
+     "temp": 3.973642988726785e-08,
+     "epot": 8.844799098718142e-08,
+     "etot": 1.0445649242783489e-07,
+     "pressure": 1.7879530886231664e-07
+    },
+    "rel_diff_step100": {
+     "temp": 5.875887612024833e-07,
+     "epot": 6.123084436051767e-06,
+     "etot": 7.78293040915065e-06,
+     "pressure": 0.00032657788351187346
+    },
+    "rel_diff_step100_rebuild_every_1": {
+     "temp": 4.58263270220208e-07,
+     "epot": 3.1179589692977774e-08,
+     "etot": 7.225745806417982e-08,
+     "pressure": 1.0083600831740638e-05
+    }
+   }
+  ]
+ },
+ "notes": [],
+ "wall_seconds": 40.24481603800086,
+ "runs": [
+  {
+   "code": "hoomd",
+   "variant": "gpu-double",
+   "precision": "double",
+   "n": 32000,
+   "size": [
+    32000
+   ],
+   "metric": "atom-steps/s",
+   "median": 27523881.912672475,
+   "value": 27523881.912672475,
+   "min": 27345409.584826678,
+   "max": 27886729.925032794,
+   "repeats": 5,
+   "steps_per_repeat": 100,
+   "rate_source": "N * steps / wall time of Simulation.run",
+   "hoomd_tps": [
+    854.627809588924,
+    855.7833841098142,
+    860.1780568577695,
+    871.5128591722371,
+    860.5703860518752
+   ],
+   "tuning_complete": false,
+   "warmup_steps": 8800,
+   "builds_per_step": 0.05,
+   "neighbor": "md.nlist.Cell(buffer=0.3, rebuild_check_delay=20, check_dist=False); autotuned kernels; default sorter",
+   "initial_state": "pymd fcc_lattice (shuffled) + uniform velocities"
+  },
+  {
+   "code": "hoomd",
+   "variant": "gpu-single",
+   "precision": "single",
+   "n": 32000,
+   "size": [
+    32000
+   ],
+   "metric": "atom-steps/s",
+   "median": 296526949.8915524,
+   "value": 296526949.8915524,
+   "min": 293667003.58835906,
+   "max": 301647034.3898333,
+   "repeats": 5,
+   "steps_per_repeat": 1020,
+   "rate_source": "N * steps / wall time of Simulation.run",
+   "hoomd_tps": [
+    9427.248046875,
+    9326.0556640625,
+    9267.2509765625,
+    9209.599609375,
+    9177.861328125
+   ],
+   "tuning_complete": true,
+   "warmup_steps": 11600,
+   "builds_per_step": 0.05,
+   "neighbor": "md.nlist.Cell(buffer=0.3, rebuild_check_delay=20, check_dist=False); autotuned kernels; default sorter",
+   "initial_state": "pymd fcc_lattice (shuffled) + uniform velocities"
+  },
+  {
+   "code": "lammps",
+   "variant": "kokkos-double",
+   "precision": "double",
+   "n": 32000,
+   "size": [
+    32000
+   ],
+   "metric": "atom-steps/s",
+   "median": 42948078.84040187,
+   "min": 42671543.41448547,
+   "max": 43038023.325071566,
+   "value": 42948078.84040187,
+   "repeats": 5,
+   "steps_per_repeat": 140,
+   "rate_source": "N * steps / LAMMPS 'Loop time' of each timed run command",
+   "lammps_reported_atom_steps_per_s": [
+    42948000.0,
+    42847000.0,
+    43038000.0,
+    42954000.0,
+    42671000.0
+   ],
+   "ave_neighs_per_atom": 74.9465,
+   "neighbor_builds_last_run": 7.0,
+   "neighbor": "KOKKOS CUDA defaults: full list, newton off; build, force and integration on the GPU",
+   "build": "kokkos-double",
+   "flags": "-k on g 1 -sf kk",
+   "initial_state": "LAMMPS lattice fcc + velocity create 1.44 87287 loop geom"
+  },
+  {
+   "code": "lammps",
+   "variant": "kokkos-double-half",
+   "precision": "double",
+   "n": 32000,
+   "size": [
+    32000
+   ],
+   "metric": "atom-steps/s",
+   "median": 45818604.85927782,
+   "min": 45434377.49578489,
+   "max": 46164804.74631899,
+   "value": 45818604.85927782,
+   "repeats": 5,
+   "steps_per_repeat": 160,
+   "rate_source": "N * steps / LAMMPS 'Loop time' of each timed run command",
+   "lammps_reported_atom_steps_per_s": [
+    45434000.0,
+    45818000.0,
+    45709000.0,
+    45949000.0,
+    46165000.0
+   ],
+   "ave_neighs_per_atom": 37.469656,
+   "neighbor_builds_last_run": 8.0,
+   "neighbor": "KOKKOS CUDA: half list, newton on (atomic force scatter)",
+   "build": "kokkos-double",
+   "flags": "-k on g 1 -sf kk -pk kokkos neigh half newton on",
+   "initial_state": "LAMMPS lattice fcc + velocity create 1.44 87287 loop geom"
+  },
+  {
+   "code": "lammps",
+   "variant": "kokkos-single",
+   "precision": "single",
+   "n": 32000,
+   "size": [
+    32000
+   ],
+   "metric": "atom-steps/s",
+   "median": 103561755.77629852,
+   "min": 103332785.05065224,
+   "max": 104303964.56924704,
+   "value": 103561755.77629852,
+   "repeats": 5,
+   "steps_per_repeat": 320,
+   "rate_source": "N * steps / LAMMPS 'Loop time' of each timed run command",
+   "lammps_reported_atom_steps_per_s": [
+    103552000.0,
+    103724000.0,
+    104304000.0,
+    103333000.0,
+    103562000.0
+   ],
+   "ave_neighs_per_atom": 75.016437,
+   "neighbor_builds_last_run": 16.0,
+   "neighbor": "KOKKOS CUDA (KOKKOS_PREC=single): full list, newton off",
+   "build": "kokkos-single",
+   "flags": "-k on g 1 -sf kk",
+   "initial_state": "LAMMPS lattice fcc + velocity create 1.44 87287 loop geom"
+  },
+  {
+   "code": "lammps",
+   "variant": "kokkos-single-half",
+   "precision": "single",
+   "n": 32000,
+   "size": [
+    32000
+   ],
+   "metric": "atom-steps/s",
+   "median": 85327207.27742624,
+   "min": 84463832.3230498,
+   "max": 87944147.01048037,
+   "value": 85327207.27742624,
+   "repeats": 5,
+   "steps_per_repeat": 260,
+   "rate_source": "N * steps / LAMMPS 'Loop time' of each timed run command",
+   "lammps_reported_atom_steps_per_s": [
+    84464000.0,
+    85327000.0,
+    86549000.0,
+    87944000.0,
+    84532000.0
+   ],
+   "ave_neighs_per_atom": 37.485969,
+   "neighbor_builds_last_run": 13.0,
+   "neighbor": "KOKKOS CUDA (KOKKOS_PREC=single): half list, newton on",
+   "build": "kokkos-single",
+   "flags": "-k on g 1 -sf kk -pk kokkos neigh half newton on",
+   "initial_state": "LAMMPS lattice fcc + velocity create 1.44 87287 loop geom"
+  },
+  {
+   "code": "lammps",
+   "variant": "gpu-mixed",
+   "precision": "mixed",
+   "n": 32000,
+   "size": [
+    32000
+   ],
+   "metric": "atom-steps/s",
+   "median": 49789464.47152179,
+   "min": 49308050.11701032,
+   "max": 49974622.26213251,
+   "value": 49789464.47152179,
+   "repeats": 5,
+   "steps_per_repeat": 160,
+   "rate_source": "N * steps / LAMMPS 'Loop time' of each timed run command",
+   "lammps_reported_atom_steps_per_s": [
+    49409000.0,
+    49975000.0,
+    49308000.0,
+    49797000.0,
+    49789000.0
+   ],
+   "ave_neighs_per_atom": 0.0,
+   "neighbor_builds_last_run": 8.0,
+   "neighbor": "GPU package: pair + neighbor list on the GPU (host binning); integration and atom sorting on the CPU, positions/forces cross PCIe every step",
+   "build": "gpu-mixed",
+   "flags": "-sf gpu -pk gpu 1",
+   "initial_state": "LAMMPS lattice fcc + velocity create 1.44 87287 loop geom"
+  },
+  {
+   "code": "lammps",
+   "variant": "gpu-single",
+   "precision": "single",
+   "n": 32000,
+   "size": [
+    32000
+   ],
+   "metric": "atom-steps/s",
+   "median": 67550062.84842494,
+   "min": 67284074.5094666,
+   "max": 67941207.6935697,
+   "value": 67550062.84842494,
+   "repeats": 5,
+   "steps_per_repeat": 220,
+   "rate_source": "N * steps / LAMMPS 'Loop time' of each timed run command",
+   "lammps_reported_atom_steps_per_s": [
+    67284000.0,
+    67550000.0,
+    67435000.0,
+    67603000.0,
+    67941000.0
+   ],
+   "ave_neighs_per_atom": 0.0,
+   "neighbor_builds_last_run": 11.0,
+   "neighbor": "GPU package (GPU_PREC=single), as gpu-mixed",
+   "build": "gpu-single",
+   "flags": "-sf gpu -pk gpu 1",
+   "initial_state": "LAMMPS lattice fcc + velocity create 1.44 87287 loop geom"
+  },
+  {
+   "code": "lammps",
+   "variant": "cpu-1core",
+   "precision": "double",
+   "n": 32000,
+   "size": [
+    32000
+   ],
+   "metric": "atom-steps/s",
+   "median": 2640111.544712764,
+   "min": 2623757.3024495235,
+   "max": 2655105.893090502,
+   "value": 2640111.544712764,
+   "repeats": 5,
+   "steps_per_repeat": 20,
+   "rate_source": "N * steps / LAMMPS 'Loop time' of each timed run command",
+   "lammps_reported_atom_steps_per_s": [
+    2624000.0,
+    2629000.0,
+    2646000.0,
+    2640000.0,
+    2655000.0
+   ],
+   "ave_neighs_per_atom": 37.494406,
+   "neighbor_builds_last_run": 1.0,
+   "neighbor": "plain lj/cut on one CPU core (no accelerator)",
+   "build": "gpu-mixed",
+   "flags": "",
+   "initial_state": "LAMMPS lattice fcc + velocity create 1.44 87287 loop geom"
+  },
+  {
+   "backend": "cupy-cuda-c",
+   "variant": "cupy-cuda-c/full",
+   "size": [
+    32000
+   ],
+   "dtype": "float32",
+   "metric": "atom-steps/s",
+   "value": 350026037.81876755,
+   "repeats": 5,
+   "median": 350026037.81876755,
+   "min": 306306468.31748515,
+   "max": 351217156.0280559,
+   "steps_per_repeat": 940,
+   "steps_per_s": 10938.313681836486,
+   "tau_per_day": 4725351.510553362,
+   "ns_per_day_argon": 10189.50896297434,
+   "mean_list_entries_per_atom": 75.0139375,
+   "bytes_per_unit": 348.05575,
+   "flops_per_unit": 2194.393457301727,
+   "effective_GBs": 121.82857511253951,
+   "pct_copy_bw": 33.7475277320054,
+   "pct_spec_bw": 27.193878373334712,
+   "pct_peak_flops": null,
+   "final_temp": 0.6986257469714424,
+   "final_epot": -5.668305169112981,
+   "final_pressure": 0.7548695007600315,
+   "neighbor_builds": 239,
+   "code": "pymd",
+   "precision": "single",
+   "n": 32000,
+   "neighbor": "full list, GPU cell list (counting sort), atoms sorted at each rebuild",
+   "initial_state": "pymd fcc_lattice (shuffled) + uniform velocities"
+  },
+  {
+   "backend": "cupy-cuda-c",
+   "variant": "cupy-cuda-c/full-fused",
+   "size": [
+    32000
+   ],
+   "dtype": "float32",
+   "metric": "atom-steps/s",
+   "value": 362748700.35364366,
+   "repeats": 5,
+   "median": 362748700.35364366,
+   "min": 362313881.22167087,
+   "max": 369144280.17358816,
+   "steps_per_repeat": 1120,
+   "steps_per_s": 11335.896886051365,
+   "tau_per_day": 4897107.45477419,
+   "ns_per_day_argon": 10559.874792727669,
+   "mean_list_entries_per_atom": 75.017125,
+   "bytes_per_unit": 348.0685,
+   "flops_per_unit": 2194.4867016957455,
+   "effective_GBs": 126.2613960090422,
+   "pct_copy_bw": 34.97545595818344,
+   "pct_spec_bw": 28.18334732344692,
+   "pct_peak_flops": null,
+   "final_temp": 0.6964061946917673,
+   "final_epot": -5.665375648785383,
+   "final_pressure": 0.7524550620894714,
+   "neighbor_builds": 284,
+   "code": "pymd",
+   "precision": "single",
+   "n": 32000,
+   "neighbor": "full list, GPU cell list (counting sort), atoms sorted at each rebuild",
+   "initial_state": "pymd fcc_lattice (shuffled) + uniform velocities"
+  },
+  {
+   "backend": "triton",
+   "variant": "triton/full-fused",
+   "size": [
+    32000
+   ],
+   "dtype": "float32",
+   "metric": "atom-steps/s",
+   "value": 342563085.6922384,
+   "repeats": 5,
+   "median": 342563085.6922384,
+   "min": 342197906.90277016,
+   "max": 352833724.4669325,
+   "steps_per_repeat": 1060,
+   "steps_per_s": 10705.09642788245,
+   "tau_per_day": 4624601.6568452185,
+   "ns_per_day_argon": 9972.257074922258,
+   "mean_list_entries_per_atom": 75.02425,
+   "bytes_per_unit": 348.097,
+   "flops_per_unit": 2194.6951303411993,
+   "effective_GBs": 119.24518244021111,
+   "pct_copy_bw": 33.03190649313327,
+   "pct_spec_bw": 26.617228223261407,
+   "pct_peak_flops": null,
+   "final_temp": 0.7017370737797006,
+   "final_epot": -5.672962861862033,
+   "final_pressure": 0.7339914466042683,
+   "neighbor_builds": 269,
+   "code": "pymd",
+   "precision": "single",
+   "n": 32000,
+   "neighbor": "full list, GPU cell list (counting sort), atoms sorted at each rebuild",
+   "initial_state": "pymd fcc_lattice (shuffled) + uniform velocities"
+  }
+ ]
+}
