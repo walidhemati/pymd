@@ -40,10 +40,10 @@
  },
  "codes": {
   "lammps": {
-   "source": "/home/hemati/python-hpc/_ref/lammps",
+   "source": "~/python-hpc/_ref/lammps",
    "builds": {
     "gpu-mixed": {
-     "exe": "/home/hemati/python-hpc/_ref/lammps-builds/gpu-mixed/lmp_gpu-mixed",
+     "exe": "~/python-hpc/_ref/lammps-builds/gpu-mixed/lmp_gpu-mixed",
      "BUILD_MPI": "no",
      "BUILD_OMP": "no",
      "CMAKE_BUILD_TYPE": "Release",
@@ -53,13 +53,13 @@
      "GPU_API": "cuda",
      "GPU_ARCH": "sm_86",
      "GPU_PREC": "mixed",
-     "cmake": "cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_MPI=no -D BUILD_OMP=no -D LAMMPS_MACHINE=gpu-mixed -C /home/hemati/python-hpc/_ref/lammps/cmake/presets/gpu-cuda.cmake -D GPU_PREC=mixed -D GPU_ARCH=sm_86 -D CUDA_BUILD_MULTIARCH=off /home/hemati/python-hpc/_ref/lammps/cmake",
+     "cmake": "cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_MPI=no -D BUILD_OMP=no -D LAMMPS_MACHINE=gpu-mixed -C ~/python-hpc/_ref/lammps/cmake/presets/gpu-cuda.cmake -D GPU_PREC=mixed -D GPU_ARCH=sm_86 -D CUDA_BUILD_MULTIARCH=off ~/python-hpc/_ref/lammps/cmake",
      "version": "30 Sep 2026",
      "compiler": "GNU C++ 15.2.0 with OpenMP not enabled",
      "accelerator": "GPU package API: CUDA | GPU package precision: mixed | Compatible GPU present: yes"
     },
     "gpu-single": {
-     "exe": "/home/hemati/python-hpc/_ref/lammps-builds/gpu-single/lmp_gpu-single",
+     "exe": "~/python-hpc/_ref/lammps-builds/gpu-single/lmp_gpu-single",
      "BUILD_MPI": "no",
      "BUILD_OMP": "no",
      "CMAKE_BUILD_TYPE": "Release",
@@ -69,37 +69,37 @@
      "GPU_API": "cuda",
      "GPU_ARCH": "sm_86",
      "GPU_PREC": "single",
-     "cmake": "cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_MPI=no -D BUILD_OMP=no -D LAMMPS_MACHINE=gpu-single -C /home/hemati/python-hpc/_ref/lammps/cmake/presets/gpu-cuda.cmake -D GPU_PREC=single -D GPU_ARCH=sm_86 -D CUDA_BUILD_MULTIARCH=off /home/hemati/python-hpc/_ref/lammps/cmake",
+     "cmake": "cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_MPI=no -D BUILD_OMP=no -D LAMMPS_MACHINE=gpu-single -C ~/python-hpc/_ref/lammps/cmake/presets/gpu-cuda.cmake -D GPU_PREC=single -D GPU_ARCH=sm_86 -D CUDA_BUILD_MULTIARCH=off ~/python-hpc/_ref/lammps/cmake",
      "version": "30 Sep 2026",
      "compiler": "GNU C++ 15.2.0 with OpenMP not enabled",
      "accelerator": "GPU package API: CUDA | GPU package precision: single | Compatible GPU present: yes"
     },
     "kokkos-double": {
-     "exe": "/home/hemati/python-hpc/_ref/lammps-builds/kokkos-double/lmp_kokkos-double",
+     "exe": "~/python-hpc/_ref/lammps-builds/kokkos-double/lmp_kokkos-double",
      "BUILD_MPI": "no",
      "BUILD_OMP": "no",
      "CMAKE_BUILD_TYPE": "Release",
-     "CMAKE_CXX_COMPILER": "/home/hemati/python-hpc/_ref/lammps/lib/kokkos/bin/nvcc_wrapper",
+     "CMAKE_CXX_COMPILER": "~/python-hpc/_ref/lammps/lib/kokkos/bin/nvcc_wrapper",
      "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
      "KOKKOS_PREC": "double",
      "Kokkos_ARCH_AMPERE86": "yes",
      "Kokkos_ENABLE_CUDA": "ON",
-     "cmake": "cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_MPI=no -D BUILD_OMP=no -D LAMMPS_MACHINE=kokkos-double -C /home/hemati/python-hpc/_ref/lammps/cmake/presets/kokkos-cuda.cmake -D Kokkos_ARCH_AMPERE86=yes -D KOKKOS_PREC=double /home/hemati/python-hpc/_ref/lammps/cmake",
+     "cmake": "cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_MPI=no -D BUILD_OMP=no -D LAMMPS_MACHINE=kokkos-double -C ~/python-hpc/_ref/lammps/cmake/presets/kokkos-cuda.cmake -D Kokkos_ARCH_AMPERE86=yes -D KOKKOS_PREC=double ~/python-hpc/_ref/lammps/cmake",
      "version": "30 Sep 2026",
      "compiler": "GNU C++ 15.2.0 with OpenMP not enabled",
      "accelerator": "KOKKOS package API: CUDA Serial | KOKKOS package precision: double | KOKKOS package random numbers: device | KOKKOS package view layout: legacy | Kokkos library version: 5.2.1"
     },
     "kokkos-single": {
-     "exe": "/home/hemati/python-hpc/_ref/lammps-builds/kokkos-single/lmp_kokkos-single",
+     "exe": "~/python-hpc/_ref/lammps-builds/kokkos-single/lmp_kokkos-single",
      "BUILD_MPI": "no",
      "BUILD_OMP": "no",
      "CMAKE_BUILD_TYPE": "Release",
-     "CMAKE_CXX_COMPILER": "/home/hemati/python-hpc/_ref/lammps/lib/kokkos/bin/nvcc_wrapper",
+     "CMAKE_CXX_COMPILER": "~/python-hpc/_ref/lammps/lib/kokkos/bin/nvcc_wrapper",
      "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
      "KOKKOS_PREC": "single",
      "Kokkos_ARCH_AMPERE86": "yes",
      "Kokkos_ENABLE_CUDA": "ON",
-     "cmake": "cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_MPI=no -D BUILD_OMP=no -D LAMMPS_MACHINE=kokkos-single -C /home/hemati/python-hpc/_ref/lammps/cmake/presets/kokkos-cuda.cmake -D Kokkos_ARCH_AMPERE86=yes -D KOKKOS_PREC=single /home/hemati/python-hpc/_ref/lammps/cmake",
+     "cmake": "cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_MPI=no -D BUILD_OMP=no -D LAMMPS_MACHINE=kokkos-single -C ~/python-hpc/_ref/lammps/cmake/presets/kokkos-cuda.cmake -D Kokkos_ARCH_AMPERE86=yes -D KOKKOS_PREC=single ~/python-hpc/_ref/lammps/cmake",
      "version": "30 Sep 2026",
      "compiler": "GNU C++ 15.2.0 with OpenMP not enabled",
      "accelerator": "KOKKOS package API: CUDA Serial | KOKKOS package precision: single | KOKKOS package random numbers: device | KOKKOS package view layout: legacy | Kokkos library version: 5.2.1"
@@ -113,13 +113,13 @@
    "conda": {
     "conda_package": "hoomd=7.2.0=gpu_py313_h6ce9c54_0",
     "channel": "https://conda.anaconda.org/conda-forge/noarch",
-    "env": "/home/hemati/python-hpc/_ref/hoomdenv"
+    "env": "~/python-hpc/_ref/hoomdenv"
    },
    "source": {
-    "path": "/home/hemati/python-hpc/_ref/hoomd-blue",
+    "path": "~/python-hpc/_ref/hoomd-blue",
     "commit": "8578236c7ce99151f9ec4b707b2095227494674d",
     "tag": "v7.2.0",
-    "cmake": "cmake -B /home/hemati/python-hpc/_ref/hoomd-blue/build-single -S /home/hemati/python-hpc/_ref/hoomd-blue -GNinja -DCMAKE_BUILD_TYPE=Release -DENABLE_GPU=on -DCUDA_ARCH_LIST=86 -DHOOMD_LONGREAL_SIZE=32 -DHOOMD_SHORTREAL_SIZE=32 -DENABLE_MPI=off -DBUILD_HPMC=off -DBUILD_METAL=off -DBUILD_MPCD=off -DBUILD_TESTING=off -DPython_EXECUTABLE=/home/hemati/python-hpc/_ref/hoomdbuild/bin/python -DCMAKE_PREFIX_PATH=/home/hemati/python-hpc/_ref/hoomdbuild -DCMAKE_C_COMPILER=/home/hemati/python-hpc/_ref/hoomdbuild/bin/x86_64-conda-linux-gnu-gcc -DCMAKE_CXX_COMPILER=/home/hemati/python-hpc/_ref/hoomdbuild/bin/x86_64-conda-linux-gnu-g++ -DCMAKE_CUDA_COMPILER=/home/hemati/python-hpc/_ref/hoomdbuild/bin/nvcc -DCMAKE_CUDA_HOST_COMPILER=/home/hemati/python-hpc/_ref/hoomdbuild/bin/x86_64-conda-linux-gnu-g++"
+    "cmake": "cmake -B ~/python-hpc/_ref/hoomd-blue/build-single -S ~/python-hpc/_ref/hoomd-blue -GNinja -DCMAKE_BUILD_TYPE=Release -DENABLE_GPU=on -DCUDA_ARCH_LIST=86 -DHOOMD_LONGREAL_SIZE=32 -DHOOMD_SHORTREAL_SIZE=32 -DENABLE_MPI=off -DBUILD_HPMC=off -DBUILD_METAL=off -DBUILD_MPCD=off -DBUILD_TESTING=off -DPython_EXECUTABLE=~/python-hpc/_ref/hoomdbuild/bin/python -DCMAKE_PREFIX_PATH=~/python-hpc/_ref/hoomdbuild -DCMAKE_C_COMPILER=~/python-hpc/_ref/hoomdbuild/bin/x86_64-conda-linux-gnu-gcc -DCMAKE_CXX_COMPILER=~/python-hpc/_ref/hoomdbuild/bin/x86_64-conda-linux-gnu-g++ -DCMAKE_CUDA_COMPILER=~/python-hpc/_ref/hoomdbuild/bin/nvcc -DCMAKE_CUDA_HOST_COMPILER=~/python-hpc/_ref/hoomdbuild/bin/x86_64-conda-linux-gnu-g++"
    },
    "variants": {
     "gpu-double": {
@@ -131,7 +131,7 @@
      ],
      "gpu_api_version": "12.9",
      "compile_flags": "GPU [CUDA] (12.9) DOUBLE[SINGLE] SSE SSE2 SSE3 ",
-     "module": "/home/hemati/python-hpc/_ref/hoomdenv/lib/python3.13/site-packages/hoomd/__init__.py",
+     "module": "~/python-hpc/_ref/hoomdenv/lib/python3.13/site-packages/hoomd/__init__.py",
      "description": "conda-forge GPU build (LongReal = 64 bit, ShortReal = 32 bit): pair forces evaluated in float64"
     },
     "gpu-single": {
@@ -143,7 +143,7 @@
      ],
      "gpu_api_version": "12.9",
      "compile_flags": "GPU [CUDA] (12.9) SINGLE[SINGLE] SSE SSE2 ",
-     "module": "/home/hemati/python-hpc/_ref/hoomd-blue/build-single/hoomd/__init__.py",
+     "module": "~/python-hpc/_ref/hoomd-blue/build-single/hoomd/__init__.py",
      "description": "source build of the same release with HOOMD_LONGREAL_SIZE=32 (bench/hoomd/build_hoomd_single.sh)"
     }
    }
