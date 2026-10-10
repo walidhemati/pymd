@@ -266,10 +266,12 @@ markers fused kernels. Right: fraction of the \copyBW\,GB/s copy bandwidth.}
 \end{figure}
 
 \paragraph{The ladder.} At $N=\refN$ the best variant per backend reaches (Matom-steps/s, \%
-of copy bandwidth): PyTorch eager \refTorchEager, \texttt{torch.compile} \refTorchCompile{}
-(\refTorchCompilePct\%), Numba \refNumba{} (\refNumbaPct\%), Warp \refWarp{}
+of copy bandwidth): Numba \refNumba{} (\refNumbaPct\%), Warp \refWarp{}
 (\refWarpPct\%), Triton \refTriton{} (\refTritonPct\%) and CUDA C \refCupy{} (\refCupyPct\%).
-The NumPy CPU baseline runs at \numpySmall{} Matom-steps/s at $N=4000$. The array-programming
+The array rungs stop at smaller $N$ on the 8\,GB GPU: PyTorch eager reaches \refTorchEager{}
+Matom-steps/s ($N=\refTorchEagerN$) and \texttt{torch.compile} \refTorchCompile{}
+($N=\refTorchCompileN$, \refTorchCompilePct\%). The NumPy CPU baseline runs at \numpySmall{}
+Matom-steps/s at $N=4000$. The array-programming
 rungs are limited by the neighbor-list rebuild, which materializes candidate arrays; the
 kernel languages share the same algorithm; we attribute their remaining differences to code
 generation details such as vector versus scalar position loads and per-launch Python overhead
@@ -316,8 +318,8 @@ on the GPU (CUDA C) at \yamdCupySame{} (\yamdCupySameRatio$\times$ faster). With
 skin and rebuild schedule the GPU reaches \yamdCupyDefault{}. For a \yamdEamN-atom gold
 cluster \yamd{} runs EAM at \yamdEamRate{} and the GPU at \yamdEamGpu{} Matom-steps/s. These
 are apples-to-oranges comparisons (one CPU core versus a GPU; different neighbor-list
-policies) included to document the lineage; CPU timings were taken on a machine shared with
-other jobs (\yamdCpu).
+policies) included to document the lineage; the CPU is an \yamdCpu, otherwise idle during
+the measurement.
 
 \begin{figure}[htbp]
 \centering\includegraphics[width=\linewidth]{../figures/yamd_compare.pdf}
@@ -337,8 +339,7 @@ index traffic but the atomic scatter costs more than it saves on this GPU.
 
 \paragraph{Threats to validity.} (i) A single laptop GPU; laptop GPUs throttle under sustained
 load, and clocks were not locked. (ii) Development timings were taken on a GPU shared with
-other jobs; the published table comes from a serial run on an idle GPU (if this paper shows
-the provisional banner, it does not yet). (iii) CUDA C is compiled by NVRTC through CuPy,
+other jobs; the published table comes from a serial run on an idle GPU. (iii) CUDA C is compiled by NVRTC through CuPy,
 not \texttt{nvcc}; code generation is the same compiler back end but flags differ.
 (iv) The traffic model excludes neighbor-position gathers and rebuilds, so percentages are
 lower bounds on achieved bandwidth, and they are not comparable across codes that use

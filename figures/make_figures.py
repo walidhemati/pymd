@@ -340,10 +340,16 @@ def write_tex(doc, val, ym) -> dict:
                    ("torch-compile", "TorchCompile"), ("triton", "Triton"), ("warp", "Warp"),
                    ("numba", "Numba"), ("cupy-cuda-c", "Cupy")):
         cand = [r for (bb, _), r in by.items() if bb == b]
+        if not cand:  # backend stops below n_ref: quote it at its own largest size
+            own = [r for r in runs_ok(doc) if r["backend"] == b and r["variant"] != "allpairs"]
+            if own:
+                n_own = max(r["size"][0] for r in own)
+                cand = [r for r in own if r["size"][0] == n_own]
         if cand:
             r = max(cand, key=lambda r: r["median"])
             m[f"ref{tag}"] = fmt(r["median"] / 1e6, 1)
             m[f"ref{tag}Pct"] = fmt(r["pct_copy_bw"] or 0, 0)
+            m[f"ref{tag}N"] = fmt(r["size"][0], 0)
     cu = by.get(("cupy-cuda-c", "full"))
     for b, tag in (("triton", "Triton"), ("warp", "Warp"), ("numba", "Numba")):
         r = by.get((b, "full"))

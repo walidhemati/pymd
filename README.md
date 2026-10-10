@@ -19,7 +19,8 @@ neighbor lists, Gupta potential for gold clusters) and moves the hot loops to th
 ## Headline result
 
 <!-- HEADLINE:BEGIN -->
-> Pending the final benchmark (`python bench/run.py --full` on an idle GPU). The figures below currently show provisional development data (`results/dev.json`).
+> **508 million atom-steps/s** on the LAMMPS `in.lj` LJ melt with 1,048,576 atoms (cupy-cuda-c / full-fused), **49% of the measured copy bandwidth** (361 GB/s, minimal-traffic model) on an NVIDIA GeForce RTX 3070 Laptop GPU; 451 ns/day for argon.  
+> Source: `results/rtx3070-laptop.json`.
 <!-- HEADLINE:END -->
 
 ## What's inside
@@ -82,7 +83,27 @@ Exact errors are in `results/validation.json` and the paper.
 ![performance vs size](figures/perf_vs_size.png)
 
 <!-- PERF:BEGIN -->
-Table pending the final benchmark run (`results/rtx3070-laptop.json`).
+Throughput at N = 2,048,000 (source `results/rtx3070-laptop.json`):
+
+| backend | variant | Matom-steps/s | % copy BW | ns/day (Ar) |
+|---|---|---:|---:|---:|
+| cupy-cuda-c | full-fused | 488.0 | 47 | 222 |
+| cupy-cuda-c | full | 456.6 | 44 | 208 |
+| cupy-cuda-c | full-morton | 453.5 | 44 | 206 |
+| triton | full-fused | 437.0 | 42 | 199 |
+| cupy-cuda-c | full-tpa2 | 429.5 | 41 | 195 |
+| triton | full | 420.5 | 41 | 191 |
+| cupy-cuda-c | full-tpa4 | 409.6 | 39 | 186 |
+| numba | full-fused | 403.8 | 39 | 184 |
+| numba | full | 381.9 | 37 | 174 |
+| warp | full | 376.6 | 36 | 171 |
+| warp | hashgrid-verlet | 328.9 | 32 | 150 |
+| cupy-cuda-c | half-atomic | 212.9 | 12 | 97 |
+| triton | half-atomic | 156.1 | 9 | 71 |
+| warp | hashgrid | 88.1 | - | 40 |
+| cupy-cuda-c | full-mixed | 63.7 | 7 | 29 |
+| cupy-cuda-c | full-nosort | 39.0 | 4 | 18 |
+| cupy-cuda-c | full-fp64 | 33.4 | 4 | 15 |
 <!-- PERF:END -->
 
 "% copy BW" uses a minimal traffic model per atom-step: read x, read+write v, write x, plus 4 bytes

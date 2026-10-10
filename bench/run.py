@@ -187,6 +187,9 @@ def _free_gpu() -> None:
         import torch
 
         torch.cuda.empty_cache()
+        # Every size compiles its own graphs (as a single-size run would). Without the reset the
+        # sweep exhausts dynamo's recompile limit and torch.compile silently falls back to eager.
+        torch._dynamo.reset()
     except Exception:
         pass
     try:
